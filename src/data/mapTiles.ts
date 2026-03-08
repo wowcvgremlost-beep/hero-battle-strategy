@@ -8,6 +8,7 @@ export interface MapTile {
   expReward?: number;
   monsterPower?: number;
   passable: boolean;
+  npcQuestId?: string;
 }
 
 export const MAP_COLS = 60;
