@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
 import { HEROES } from '@/data/heroes';
+import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
-import { Shield, Swords, LogOut, Star, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2 } from 'lucide-react';
+import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -18,16 +20,47 @@ import type { TownId } from '@/data/towns';
 
 type GameTab = 'army' | 'buildings' | 'map' | 'spells';
 
+// Calculate weekly growth for a unit based on buildings
+function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
+  let growth = baseGrowth;
+  if (hasCastle) {
+    growth = baseGrowth * 2; // +100% from base
+  } else if (hasCitadel) {
+    growth = baseGrowth + Math.floor(baseGrowth * 0.5); // +50%
+  }
+  return growth;
+}
+
 const Game = () => {
   const { user, profile, buildings, army, spells, signOut, updateMapPosition, updateDay, updateGold, refreshProfile, refreshBuildings, refreshArmy, refreshSpells } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
   const [diceRoll, setDiceRoll] = useState<number | null>(null);
+  const [diceUsed, setDiceUsed] = useState(false); // one roll per turn
   const [battleData, setBattleData] = useState<{ monsterPower: number; monsterName: string; goldReward: number; expReward: number } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Fog of war: track all revealed tile IDs (persisted in localStorage)
+  // Creature pool: how many of each unit are available to hire this week
+  // Stored in localStorage, reset each week
+  const [creaturePool, setCreaturePool] = useState<Record<string, number>>(() => {
+    if (!user) return {};
+    try {
+      const saved = localStorage.getItem(`pool_${user.id}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  });
+  const [poolWeek, setPoolWeek] = useState<number>(() => {
+    if (!user) return 0;
+    try {
+      const saved = localStorage.getItem(`poolWeek_${user.id}`);
+      if (saved) return parseInt(saved);
+    } catch {}
+    return 0;
+  });
+
+  // Fog of war
   const [revealedTiles, setRevealedTiles] = useState<Set<number>>(() => {
     if (!user) return new Set<number>();
     try {
@@ -37,7 +70,7 @@ const Game = () => {
     return new Set<number>();
   });
 
-  // On first load or spawn, reveal tiles around current position
+  // Reveal tiles around current position
   useEffect(() => {
     if (profile?.map_position !== undefined) {
       const visible = getVisibleTiles(profile.map_position, 4);
@@ -53,13 +86,59 @@ const Game = () => {
     }
   }, [profile?.map_position, user]);
 
-  // Random spawn on first game (position 0 means not yet placed)
+  // Random spawn
   useEffect(() => {
     if (profile && profile.map_position === 0 && profile.character_created && user) {
       const spawn = getRandomSpawnPosition();
       updateMapPosition(spawn);
     }
   }, [profile?.character_created]);
+
+  // Refresh creature pool on new week
+  useEffect(() => {
+    if (!profile || !town || !user) return;
+    const currentWeek = getWeekNumber(profile.day || 1);
+    if (currentWeek !== poolWeek) {
+      refreshCreaturePool(currentWeek);
+    }
+  }, [profile?.day, town, buildings, user]);
+
+  const refreshCreaturePool = (week: number) => {
+    if (!town || !user) return;
+    const builtIds = buildings.map(b => b.building_id);
+    const hasCitadel = builtIds.includes('citadel');
+    const hasCastle = builtIds.includes('castle_building');
+    const hasFort = builtIds.includes('fort');
+    const townCreatureBuildings = TOWN_BUILDINGS[town.id as TownId] || [];
+
+    const newPool: Record<string, number> = {};
+    
+    if (hasFort) {
+      town.units.forEach((unit, idx) => {
+        const building = townCreatureBuildings[idx];
+        if (building && builtIds.includes(building.id)) {
+          const growth = calculateGrowth(unit.growth, hasCitadel, hasCastle);
+          // Add to existing pool (accumulate if not bought)
+          const existing = poolWeek === 0 ? 0 : (creaturePool[unit.name] || 0);
+          newPool[unit.name] = existing + growth;
+        }
+      });
+    }
+
+    setCreaturePool(newPool);
+    setPoolWeek(week);
+    localStorage.setItem(`pool_${user.id}`, JSON.stringify(newPool));
+    localStorage.setItem(`poolWeek_${user.id}`, String(week));
+  };
+
+  const decrementPool = (unitName: string, amount: number = 1) => {
+    if (!user) return;
+    setCreaturePool(prev => {
+      const next = { ...prev, [unitName]: Math.max(0, (prev[unitName] || 0) - amount) };
+      localStorage.setItem(`pool_${user.id}`, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const mageGuildLevel = buildings.some(b => b.building_id === 'mage_guild_4') ? 4
     : buildings.some(b => b.building_id === 'mage_guild_3') ? 3
@@ -87,6 +166,7 @@ const Game = () => {
 
   const handleDiceRoll = (value: number) => {
     setDiceRoll(value);
+    setDiceUsed(true);
   };
 
   const handleTileSelect = (tile: MapTile) => {};
@@ -98,7 +178,6 @@ const Game = () => {
     await updateMapPosition(tileId);
     setDiceRoll(null);
 
-    // Reveal new tiles
     const visible = getVisibleTiles(tileId, 4);
     setRevealedTiles(prev => {
       const next = new Set(prev);
@@ -123,47 +202,44 @@ const Game = () => {
 
   const handleEndTurn = async () => {
     if (!profile) return;
+    const newDay = (profile.day || 1) + 1;
     const income = calculateDailyIncome();
     if (income > 0) {
       await updateGold((profile.gold || 0) + income);
       toast.success(`Доход: +${income} золота`);
     }
-    await updateDay((profile.day || 1) + 1);
+    
+    // Check if new week starts
+    if (isNewWeek(newDay)) {
+      toast.info('🗓️ Новая неделя! Существа пополнены.');
+    }
+
+    await updateDay(newDay);
     setDiceRoll(null);
+    setDiceUsed(false); // reset dice for next turn
   };
 
   const handleDeleteCharacter = async () => {
     if (!user) return;
-    // Delete all player data
     await Promise.all([
       supabase.from('player_buildings').delete().eq('user_id', user.id),
       supabase.from('player_army').delete().eq('user_id', user.id),
       supabase.from('player_spells').delete().eq('user_id', user.id),
       supabase.from('battles').delete().eq('attacker_id', user.id),
     ]);
-    // Reset profile
     await supabase.from('profiles').update({
-      character_created: false,
-      character_name: null,
-      town: null,
-      hero_id: null,
-      gold: 10000,
-      mana: 50,
-      hero_attack: 1,
-      hero_defense: 1,
-      hero_spellpower: 1,
-      hero_knowledge: 1,
-      hero_level: 1,
-      hero_experience: 0,
-      map_position: 0,
-      day: 1,
-      built_this_turn: false,
+      character_created: false, character_name: null, town: null, hero_id: null,
+      gold: 10000, mana: 50, hero_attack: 1, hero_defense: 1, hero_spellpower: 1,
+      hero_knowledge: 1, hero_level: 1, hero_experience: 0, map_position: 0,
+      day: 1, built_this_turn: false,
     }).eq('user_id', user.id);
-    // Clear fog
     localStorage.removeItem(`fog_${user.id}`);
+    localStorage.removeItem(`pool_${user.id}`);
+    localStorage.removeItem(`poolWeek_${user.id}`);
     setRevealedTiles(new Set());
+    setCreaturePool({});
+    setPoolWeek(0);
     setShowDeleteConfirm(false);
-    // Refresh
     await refreshProfile();
     await refreshBuildings();
     await refreshArmy();
@@ -172,6 +248,8 @@ const Game = () => {
   };
 
   const currentTile = getTileById(profile?.map_position || 0);
+  const calendar = getCalendar(profile?.day || 1);
+  const hasFort = buildings.some(b => b.building_id === 'fort');
 
   return (
     <div className="min-h-screen bg-gradient-dark">
@@ -206,7 +284,8 @@ const Game = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mt-1 pb-1">
+        {/* Stats + calendar */}
+        <div className="flex items-center gap-3 mt-1 pb-1">
           <div className="flex items-center gap-1">
             <Swords className="h-3 w-3 text-crimson" />
             <span className="text-[10px] text-foreground">{profile?.hero_attack}</span>
@@ -223,11 +302,14 @@ const Game = () => {
             <BookOpen className="h-3 w-3 text-emerald" />
             <span className="text-[10px] text-foreground">{profile?.hero_knowledge}</span>
           </div>
-          <span className="text-[10px] text-muted-foreground ml-auto">День {profile?.day || 1}</span>
+          <div className="flex items-center gap-1 ml-auto">
+            <Calendar className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground">{calendar.dayName.slice(0,2)}, Нед.{calendar.weekInMonth}, {calendar.monthName.slice(0,3)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Delete confirmation overlay */}
+      {/* Delete confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <motion.div
@@ -237,22 +319,10 @@ const Game = () => {
           >
             <Trash2 className="h-10 w-10 text-destructive mx-auto" />
             <h3 className="font-display text-lg font-bold text-foreground">Удалить персонажа?</h3>
-            <p className="text-sm text-muted-foreground">
-              Все данные будут удалены: здания, армия, заклинания, прогресс. Это действие необратимо.
-            </p>
+            <p className="text-sm text-muted-foreground">Все данные будут удалены. Это действие необратимо.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 rounded-xl bg-secondary py-2.5 font-display text-sm font-bold text-foreground"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleDeleteCharacter}
-                className="flex-1 rounded-xl bg-destructive py-2.5 font-display text-sm font-bold text-destructive-foreground"
-              >
-                Удалить
-              </button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 rounded-xl bg-secondary py-2.5 font-display text-sm font-bold text-foreground">Отмена</button>
+              <button onClick={handleDeleteCharacter} className="flex-1 rounded-xl bg-destructive py-2.5 font-display text-sm font-bold text-destructive-foreground">Удалить</button>
             </div>
           </motion.div>
         </div>
@@ -284,6 +354,18 @@ const Game = () => {
 
         {tab === 'map' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            {/* Calendar display */}
+            <div className="rounded-xl border border-border bg-gradient-card p-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase">Дата</p>
+                <p className="font-display text-xs font-bold text-foreground">{formatDate(profile?.day || 1)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground uppercase">День</p>
+                <p className="font-display text-lg font-bold text-gold">{profile?.day || 1}</p>
+              </div>
+            </div>
+
             {currentTile && (
               <div className="rounded-xl border border-gold/20 bg-gradient-card p-3">
                 <p className="text-[10px] text-muted-foreground uppercase">Текущая позиция</p>
@@ -293,7 +375,11 @@ const Game = () => {
 
             <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} />
 
-            <DiceRoller onRoll={handleDiceRoll} disabled={diceRoll !== null} />
+            {/* Dice - disabled if already used this turn */}
+            <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} />
+            {diceUsed && !diceRoll && (
+              <p className="text-center text-[10px] text-muted-foreground">Вы уже бросали кубик в этот ход</p>
+            )}
 
             <motion.button
               whileTap={{ scale: 0.97 }}
@@ -301,14 +387,14 @@ const Game = () => {
               className="w-full rounded-xl bg-gradient-gold p-3 shadow-gold font-display text-sm font-bold text-primary-foreground flex items-center justify-center gap-2"
             >
               <Dice6 className="h-4 w-4" />
-              ЗАВЕРШИТЬ ХОД (День {(profile?.day || 1) + 1})
+              ЗАВЕРШИТЬ ХОД
             </motion.button>
           </motion.div>
         )}
 
         {tab === 'army' && town && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <ArmyScreen townId={town.id as TownId} />
+            <ArmyScreen townId={town.id as TownId} creaturePool={creaturePool} onHire={decrementPool} hasFort={hasFort} />
           </motion.div>
         )}
 
