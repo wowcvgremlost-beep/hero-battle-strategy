@@ -383,6 +383,7 @@ const Game = () => {
             { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
+            { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
           ]).map((t) => (
             <button
               key={t.id}
