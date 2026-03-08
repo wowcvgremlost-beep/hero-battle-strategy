@@ -6,7 +6,7 @@ import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -16,12 +16,14 @@ import BattleSystem from '@/components/game/BattleSystem';
 import ArmyScreen from '@/components/game/ArmyScreen';
 import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
 import LevelUpModal from '@/components/game/LevelUpModal';
+import Leaderboard from '@/components/game/Leaderboard';
+import PvPBattle from '@/components/game/PvPBattle';
 import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard';
 
 // Calculate weekly growth for a unit based on buildings
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
@@ -44,6 +46,11 @@ const Game = () => {
   const [battleData, setBattleData] = useState<{ monsterPower: number; monsterName: string; goldReward: number; expReward: number } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [levelUpPending, setLevelUpPending] = useState(false);
+  const [pvpTarget, setPvpTarget] = useState<{
+    user_id: string; character_name: string | null; town: string | null;
+    hero_level: number; hero_attack: number; hero_defense: number;
+    hero_spellpower: number; gold: number;
+  } | null>(null);
 
   // Convert heroSkills array to a map
   const skillsMap: Record<string, number> = {};
@@ -384,6 +391,7 @@ const Game = () => {
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
+            { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
           ]).map((t) => (
             <button
               key={t.id}
@@ -421,7 +429,7 @@ const Game = () => {
               </div>
             )}
 
-            <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} />
+            <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} onAttackPlayer={(p) => setPvpTarget(p)} />
 
             {/* Dice - disabled if already used this turn */}
             <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} />
@@ -463,6 +471,12 @@ const Game = () => {
             <HeroSkillsScreen heroSkills={skillsMap} />
           </motion.div>
         )}
+
+        {tab === 'leaderboard' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Leaderboard />
+          </motion.div>
+        )}
       </div>
 
       {levelUpPending && (
@@ -482,6 +496,13 @@ const Game = () => {
           expReward={battleData.expReward}
           onClose={() => setBattleData(null)}
           onVictory={() => setBattleData(null)}
+        />
+      )}
+
+      {pvpTarget && (
+        <PvPBattle
+          target={pvpTarget}
+          onClose={() => setPvpTarget(null)}
         />
       )}
     </div>
