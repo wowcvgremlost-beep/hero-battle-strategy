@@ -5,7 +5,7 @@ import type { TownId } from '@/data/towns';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Coins, Home, Info, Lock, ChevronDown, ChevronUp, Check, ShoppingCart } from 'lucide-react';
+import { Coins, Home, Info, Lock, ChevronDown, ChevronUp, Check, ShoppingCart, Ban } from 'lucide-react';
 
 interface BuildingsScreenProps {
   townId: TownId;
@@ -13,8 +13,8 @@ interface BuildingsScreenProps {
 
 type Tab = 'common' | 'creature';
 
-const BuildingCard = ({ building, index, isBuilt, canBuild, gold, onBuy }: { 
-  building: Building; index: number; isBuilt: boolean; canBuild: boolean; gold: number; onBuy: () => void;
+const BuildingCard = ({ building, index, isBuilt, canBuild, gold, builtThisTurn, onBuy }: { 
+  building: Building; index: number; isBuilt: boolean; canBuild: boolean; gold: number; builtThisTurn: boolean; onBuy: () => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const affordable = gold >= building.cost;
@@ -95,15 +95,22 @@ const BuildingCard = ({ building, index, isBuilt, canBuild, gold, onBuy }: {
               </div>
               
               {!isBuilt && canBuild && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={(e) => { e.stopPropagation(); onBuy(); }}
-                  disabled={!affordable}
-                  className="w-full rounded-lg bg-gradient-gold p-2 font-display text-xs font-bold text-primary-foreground disabled:opacity-40 flex items-center justify-center gap-2"
-                >
-                  <ShoppingCart className="h-3 w-3" />
-                  {affordable ? 'ПОСТРОИТЬ' : 'НЕ ХВАТАЕТ ЗОЛОТА'}
-                </motion.button>
+                builtThisTurn ? (
+                  <div className="w-full rounded-lg bg-secondary p-2 font-display text-xs font-bold text-muted-foreground flex items-center justify-center gap-2">
+                    <Ban className="h-3 w-3" />
+                    УЖЕ СТРОИЛИ В ЭТОТ ХОД
+                  </div>
+                ) : (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => { e.stopPropagation(); onBuy(); }}
+                    disabled={!affordable}
+                    className="w-full rounded-lg bg-gradient-gold p-2 font-display text-xs font-bold text-primary-foreground disabled:opacity-40 flex items-center justify-center gap-2"
+                  >
+                    <ShoppingCart className="h-3 w-3" />
+                    {affordable ? 'ПОСТРОИТЬ' : 'НЕ ХВАТАЕТ ЗОЛОТА'}
+                  </motion.button>
+                )
               )}
             </div>
           </motion.div>
@@ -114,7 +121,7 @@ const BuildingCard = ({ building, index, isBuilt, canBuild, gold, onBuy }: {
 };
 
 const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
-  const { user, profile, buildings: playerBuildings, refreshBuildings, updateGold } = useAuth();
+  const { user, profile, buildings: playerBuildings, refreshBuildings, updateGold, setBuiltThisTurn } = useAuth();
   const [tab, setTab] = useState<Tab>('creature');
   const { common, creature } = getBuildingsForTown(townId);
   const [buying, setBuying] = useState(false);
@@ -123,7 +130,6 @@ const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
   const buildingsList = tab === 'common' ? common : creature;
 
   const checkRequirements = (building: Building): boolean => {
-    // Check if all requirements are met (built)
     return building.requirements.every(req => {
       const reqBuilding = [...common, ...creature].find(b => b.name === req);
       return reqBuilding && builtIds.includes(reqBuilding.id);
@@ -132,6 +138,10 @@ const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
 
   const handleBuy = async (building: Building) => {
     if (!user || buying || !profile) return;
+    if (profile.built_this_turn) {
+      toast.error('Можно строить только 1 здание за ход!');
+      return;
+    }
     if (profile.gold < building.cost) {
       toast.error('Недостаточно золота!');
       return;
@@ -148,6 +158,7 @@ const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
         building_id: building.id,
       });
       await updateGold(profile.gold - building.cost);
+      await setBuiltThisTurn(true);
       await refreshBuildings();
       toast.success(`${building.name} построено!`);
     } catch (err: any) {
@@ -159,7 +170,6 @@ const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Tabs */}
       <div className="flex gap-2">
         <button
           onClick={() => setTab('creature')}
@@ -183,7 +193,12 @@ const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
         </button>
       </div>
 
-      {/* Building list */}
+      {profile?.built_this_turn && (
+        <div className="rounded-lg border border-gold/30 bg-gold/5 p-2 text-center">
+          <span className="text-xs text-gold font-semibold">⚠️ Вы уже построили здание в этот ход</span>
+        </div>
+      )}
+
       <div className="space-y-2">
         {buildingsList.map((b, i) => (
           <BuildingCard
@@ -193,6 +208,7 @@ const BuildingsScreen = ({ townId }: BuildingsScreenProps) => {
             isBuilt={builtIds.includes(b.id)}
             canBuild={checkRequirements(b)}
             gold={profile?.gold || 0}
+            builtThisTurn={profile?.built_this_turn || false}
             onBuy={() => handleBuy(b)}
           />
         ))}
