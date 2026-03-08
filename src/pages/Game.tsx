@@ -1,11 +1,17 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
-import { Shield, Swords, Heart, Zap, LogOut, Star } from 'lucide-react';
+import { Shield, Swords, Heart, Zap, LogOut, Star, Building2, Users } from 'lucide-react';
+import BuildingsScreen from '@/components/game/BuildingsScreen';
+import type { TownId } from '@/data/towns';
+
+type GameTab = 'army' | 'buildings';
 
 const Game = () => {
   const { profile, signOut } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
+  const [tab, setTab] = useState<GameTab>('army');
 
   return (
     <div className="min-h-screen bg-gradient-dark">
@@ -24,7 +30,7 @@ const Game = () => {
       </div>
 
       {/* Content */}
-      <div className="px-4 pt-6 pb-8 max-w-lg mx-auto">
+      <div className="px-4 pt-6 pb-24 max-w-lg mx-auto">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <h1 className="font-display text-3xl font-black text-gradient-gold text-center mb-2">БИТВА ГЕРОЕВ</h1>
           <p className="text-center text-sm text-muted-foreground mb-6">Добро пожаловать, {profile?.character_name}!</p>
@@ -44,12 +50,37 @@ const Game = () => {
           </motion.div>
         )}
 
-        {/* Army */}
-        {town && (
+        {/* Tab navigation */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setTab('army')}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3 font-display text-xs font-bold transition-all ${
+              tab === 'army'
+                ? 'bg-gradient-crimson text-accent-foreground shadow-crimson'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            АРМИЯ
+          </button>
+          <button
+            onClick={() => setTab('buildings')}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3 font-display text-xs font-bold transition-all ${
+              tab === 'buildings'
+                ? 'bg-gradient-crimson text-accent-foreground shadow-crimson'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            ПОСТРОЙКИ
+          </button>
+        </div>
+
+        {/* Tab content */}
+        {tab === 'army' && town && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
           >
             <h3 className="font-display text-sm font-bold text-gold mb-3 uppercase">Твоя армия</h3>
             <div className="space-y-2">
@@ -58,7 +89,7 @@ const Game = () => {
                   key={u.name}
                   initial={{ opacity: 0, x: -15 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.05 }}
+                  transition={{ delay: i * 0.05 }}
                   className="rounded-lg border border-border bg-gradient-card p-3"
                 >
                   <div className="flex items-center justify-between mb-1.5">
@@ -97,15 +128,14 @@ const Game = () => {
           </motion.div>
         )}
 
-        {/* Placeholder for future features */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-6 rounded-xl border border-arcane/20 bg-gradient-card p-4 text-center"
-        >
-          <p className="text-xs text-muted-foreground">🏗️ Постройки, битвы и магазин — скоро!</p>
-        </motion.div>
+        {tab === 'buildings' && town && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <BuildingsScreen townId={town.id as TownId} />
+          </motion.div>
+        )}
       </div>
     </div>
   );
