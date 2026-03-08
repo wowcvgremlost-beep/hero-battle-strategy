@@ -38,6 +38,12 @@ interface PlayerSpell {
   spell_id: string;
 }
 
+interface HeroSkill {
+  id: string;
+  skill_id: string;
+  skill_level: number;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -45,12 +51,14 @@ interface AuthContextType {
   buildings: PlayerBuilding[];
   army: PlayerArmy[];
   spells: PlayerSpell[];
+  heroSkills: HeroSkill[];
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshBuildings: () => Promise<void>;
   refreshArmy: () => Promise<void>;
   refreshSpells: () => Promise<void>;
+  refreshHeroSkills: () => Promise<void>;
   updateGold: (newGold: number) => Promise<void>;
   updateMana: (newMana: number) => Promise<void>;
   updateMapPosition: (newPosition: number) => Promise<void>;
