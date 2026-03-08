@@ -38,6 +38,12 @@ interface PlayerSpell {
   spell_id: string;
 }
 
+interface HeroSkill {
+  id: string;
+  skill_id: string;
+  skill_level: number;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -45,12 +51,14 @@ interface AuthContextType {
   buildings: PlayerBuilding[];
   army: PlayerArmy[];
   spells: PlayerSpell[];
+  heroSkills: HeroSkill[];
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshBuildings: () => Promise<void>;
   refreshArmy: () => Promise<void>;
   refreshSpells: () => Promise<void>;
+  refreshHeroSkills: () => Promise<void>;
   updateGold: (newGold: number) => Promise<void>;
   updateMana: (newMana: number) => Promise<void>;
   updateMapPosition: (newPosition: number) => Promise<void>;
@@ -74,6 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [buildings, setBuildings] = useState<PlayerBuilding[]>([]);
   const [army, setArmy] = useState<PlayerArmy[]>([]);
   const [spells, setSpells] = useState<PlayerSpell[]>([]);
+  const [heroSkills, setHeroSkills] = useState<HeroSkill[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -109,10 +118,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSpells((data as PlayerSpell[]) || []);
   };
 
+  const fetchHeroSkills = async (userId: string) => {
+    const { data } = await supabase
+      .from('hero_skills')
+      .select('id, skill_id, skill_level')
+      .eq('user_id', userId);
+    setHeroSkills((data as HeroSkill[]) || []);
+  };
+
   const refreshProfile = async () => { if (user) await fetchProfile(user.id); };
   const refreshBuildings = async () => { if (user) await fetchBuildings(user.id); };
   const refreshArmy = async () => { if (user) await fetchArmy(user.id); };
   const refreshSpells = async () => { if (user) await fetchSpells(user.id); };
+  const refreshHeroSkills = async () => { if (user) await fetchHeroSkills(user.id); };
 
   const updateGold = async (newGold: number) => {
     if (!user) return;
@@ -161,12 +179,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchBuildings(session.user.id);
             fetchArmy(session.user.id);
             fetchSpells(session.user.id);
+            fetchHeroSkills(session.user.id);
           }, 0);
         } else {
           setProfile(null);
           setBuildings([]);
           setArmy([]);
           setSpells([]);
+          setHeroSkills([]);
         }
         setLoading(false);
       }
@@ -180,6 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchBuildings(session.user.id);
         fetchArmy(session.user.id);
         fetchSpells(session.user.id);
+        fetchHeroSkills(session.user.id);
       }
       setLoading(false);
     });
@@ -195,12 +216,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setBuildings([]);
     setArmy([]);
     setSpells([]);
+    setHeroSkills([]);
   };
 
   return (
     <AuthContext.Provider value={{ 
-      user, session, profile, buildings, army, spells, loading, 
-      signOut, refreshProfile, refreshBuildings, refreshArmy, refreshSpells,
+      user, session, profile, buildings, army, spells, heroSkills, loading, 
+      signOut, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills,
       updateGold, updateMana, updateMapPosition, updateDay, updateHeroStats, setBuiltThisTurn
     }}>
       {children}

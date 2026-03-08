@@ -53,6 +53,30 @@ export type Database = {
         }
         Relationships: []
       }
+      hero_skills: {
+        Row: {
+          created_at: string
+          id: string
+          skill_id: string
+          skill_level: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          skill_id: string
+          skill_level?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          skill_id?: string
+          skill_level?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_army: {
         Row: {
           count: number

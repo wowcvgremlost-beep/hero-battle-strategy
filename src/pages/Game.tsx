@@ -6,7 +6,7 @@ import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -14,11 +14,14 @@ import HexMap from '@/components/game/HexMap';
 import DiceRoller from '@/components/game/DiceRoller';
 import BattleSystem from '@/components/game/BattleSystem';
 import ArmyScreen from '@/components/game/ArmyScreen';
+import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
+import LevelUpModal from '@/components/game/LevelUpModal';
+import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills';
 
 // Calculate weekly growth for a unit based on buildings
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
@@ -32,14 +35,19 @@ function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boo
 }
 
 const Game = () => {
-  const { user, profile, buildings, army, spells, signOut, updateMapPosition, updateDay, updateGold, refreshProfile, refreshBuildings, refreshArmy, refreshSpells } = useAuth();
+  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
   const [diceRoll, setDiceRoll] = useState<number | null>(null);
-  const [diceUsed, setDiceUsed] = useState(false); // one roll per turn
+  const [diceUsed, setDiceUsed] = useState(false);
   const [battleData, setBattleData] = useState<{ monsterPower: number; monsterName: string; goldReward: number; expReward: number } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [levelUpPending, setLevelUpPending] = useState(false);
+
+  // Convert heroSkills array to a map
+  const skillsMap: Record<string, number> = {};
+  heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
 
   // Creature pool: how many of each unit are available to hire this week
   // Stored in localStorage, reset each week
@@ -154,6 +162,16 @@ const Game = () => {
     return income;
   }, [buildings]);
 
+  // Check for pending level-up
+  useEffect(() => {
+    if (profile) {
+      const needed = expForLevel(profile.hero_level || 1);
+      if ((profile.hero_experience || 0) >= needed) {
+        setLevelUpPending(true);
+      }
+    }
+  }, [profile?.hero_experience, profile?.hero_level]);
+
   if (!profile?.hero_id && town) {
     return (
       <div className="min-h-screen bg-gradient-dark px-4 py-8">
@@ -226,6 +244,7 @@ const Game = () => {
       supabase.from('player_army').delete().eq('user_id', user.id),
       supabase.from('player_spells').delete().eq('user_id', user.id),
       supabase.from('battles').delete().eq('attacker_id', user.id),
+      supabase.from('hero_skills').delete().eq('user_id', user.id),
     ]);
     await supabase.from('profiles').update({
       character_created: false, character_name: null, town: null, hero_id: null,
@@ -244,7 +263,35 @@ const Game = () => {
     await refreshBuildings();
     await refreshArmy();
     await refreshSpells();
+    await refreshHeroSkills();
     toast.success('Персонаж удалён. Создайте нового!');
+  };
+
+
+
+
+  const handleLevelUpChoice = async (skillId: string) => {
+    if (!user || !profile) return;
+    const needed = expForLevel(profile.hero_level);
+    const newLevel = profile.hero_level + 1;
+    const leftoverExp = (profile.hero_experience || 0) - needed;
+
+    // Upsert skill
+    const currentLevel = skillsMap[skillId] || 0;
+    await supabase.from('hero_skills').upsert({
+      user_id: user.id,
+      skill_id: skillId,
+      skill_level: currentLevel + 1,
+    }, { onConflict: 'user_id,skill_id' });
+
+    await updateHeroStats({
+      hero_level: newLevel,
+      hero_experience: Math.max(0, leftoverExp),
+    });
+
+    await refreshHeroSkills();
+    setLevelUpPending(false);
+    toast.success(`Уровень ${newLevel}! ${SKILLS.find(s => s.id === skillId)?.name || skillId} улучшен!`);
   };
 
   const currentTile = getTileById(profile?.map_position || 0);
@@ -336,6 +383,7 @@ const Game = () => {
             { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
+            { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
           ]).map((t) => (
             <button
               key={t.id}
@@ -409,7 +457,22 @@ const Game = () => {
             <SpellsScreen mageGuildLevel={mageGuildLevel} />
           </motion.div>
         )}
+
+        {tab === 'skills' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <HeroSkillsScreen heroSkills={skillsMap} />
+          </motion.div>
+        )}
       </div>
+
+      {levelUpPending && (
+        <LevelUpModal
+          level={(profile?.hero_level || 1) + 1}
+          choices={getRandomSkillChoices(skillsMap)}
+          currentSkills={skillsMap}
+          onChoose={handleLevelUpChoice}
+        />
+      )}
 
       {battleData && (
         <BattleSystem

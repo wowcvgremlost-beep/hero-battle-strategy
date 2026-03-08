@@ -85,19 +85,7 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
         await updateGold((profile.gold || 0) + goldReward);
         
         const newExp = (profile.hero_experience || 0) + expReward;
-        const expToLevel = profile.hero_level * 100;
-        
-        if (newExp >= expToLevel) {
-          await updateHeroStats({
-            hero_experience: newExp - expToLevel,
-            hero_level: (profile.hero_level || 1) + 1,
-            hero_attack: (profile.hero_attack || 1) + 1,
-            hero_defense: (profile.hero_defense || 1) + 1,
-          });
-          toast.success('Уровень повышен!');
-        } else {
-          await updateHeroStats({ hero_experience: newExp });
-        }
+        await updateHeroStats({ hero_experience: newExp });
 
         // Record battle
         await supabase.from('battles').insert({
