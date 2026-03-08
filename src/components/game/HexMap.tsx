@@ -36,6 +36,7 @@ const TILE_FILL: Record<string, string> = {
   treasure: 'hsl(45 90% 60%)',
   mine: 'hsl(280 50% 55%)',
   monster: 'hsl(0 60% 50%)',
+  npc: 'hsl(180 60% 50%)',
   empty: 'hsl(0 0% 90%)',
 };
 
