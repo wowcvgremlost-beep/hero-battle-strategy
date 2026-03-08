@@ -118,10 +118,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSpells((data as PlayerSpell[]) || []);
   };
 
+  const fetchHeroSkills = async (userId: string) => {
+    const { data } = await supabase
+      .from('hero_skills')
+      .select('id, skill_id, skill_level')
+      .eq('user_id', userId);
+    setHeroSkills((data as HeroSkill[]) || []);
+  };
+
   const refreshProfile = async () => { if (user) await fetchProfile(user.id); };
   const refreshBuildings = async () => { if (user) await fetchBuildings(user.id); };
   const refreshArmy = async () => { if (user) await fetchArmy(user.id); };
   const refreshSpells = async () => { if (user) await fetchSpells(user.id); };
+  const refreshHeroSkills = async () => { if (user) await fetchHeroSkills(user.id); };
 
   const updateGold = async (newGold: number) => {
     if (!user) return;
