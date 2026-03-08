@@ -429,7 +429,7 @@ const Game = () => {
               </div>
             )}
 
-            <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} />
+            <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} onAttackPlayer={(p) => setPvpTarget(p)} />
 
             {/* Dice - disabled if already used this turn */}
             <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} />
