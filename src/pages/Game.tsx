@@ -162,7 +162,17 @@ const Game = () => {
     return income;
   }, [buildings]);
 
-  if (!profile?.hero_id && town) {
+  // Check for pending level-up
+  useEffect(() => {
+    if (profile) {
+      const needed = expForLevel(profile.hero_level || 1);
+      if ((profile.hero_experience || 0) >= needed) {
+        setLevelUpPending(true);
+      }
+    }
+  }, [profile?.hero_experience, profile?.hero_level]);
+
+
     return (
       <div className="min-h-screen bg-gradient-dark px-4 py-8">
         <div className="max-w-lg mx-auto">
