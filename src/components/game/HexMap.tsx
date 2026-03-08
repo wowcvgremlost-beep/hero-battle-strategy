@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import { MAP_TILES, MAP_COLS, MAP_ROWS, getReachableTiles, type MapTile } from '@/data/mapTiles';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { MAP_TILES, MAP_COLS, MAP_ROWS, getReachableTiles, getVisibleTiles, type MapTile } from '@/data/mapTiles';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HexMapProps {
   diceRoll: number | null;
   onTileSelect: (tile: MapTile) => void;
   onMove: (tileId: number) => void;
+  revealedTiles: Set<number>;
 }
 
-// Triangle grid settings
-const TRI_SIZE = 28; // side length
+const TRI_SIZE = 22;
 const TRI_H = TRI_SIZE * Math.sqrt(3) / 2;
 
 const TILE_FILL: Record<string, string> = {
@@ -51,18 +51,13 @@ const TILE_ICONS: Record<string, string> = {
   empty: '',
 };
 
-// Returns the 3 points of a triangle given row, col in the triangle grid
-// Even col = upward pointing triangle, odd col = downward pointing
 function trianglePoints(row: number, col: number): string {
   const isUp = (row + col) % 2 === 0;
   const x = col * TRI_SIZE / 2;
   const y = row * TRI_H;
-  
   if (isUp) {
-    // ▲ pointing up
     return `${x},${y + TRI_H} ${x + TRI_SIZE / 2},${y} ${x + TRI_SIZE},${y + TRI_H}`;
   } else {
-    // ▽ pointing down
     return `${x},${y} ${x + TRI_SIZE / 2},${y + TRI_H} ${x + TRI_SIZE},${y}`;
   }
 }
@@ -74,13 +69,18 @@ function triangleCenter(row: number, col: number): { x: number; y: number } {
   return { x, y };
 }
 
-const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
+const FOG_FILL = 'hsl(220 15% 12%)';
+
+const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles }: HexMapProps) => {
   const { profile } = useAuth();
   const currentPosition = profile?.map_position ?? 0;
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const reachableTiles = diceRoll ? getReachableTiles(currentPosition, diceRoll) : [];
+
+  // Currently visible tiles (around player)
+  const currentlyVisible = useMemo(() => getVisibleTiles(currentPosition, 4), [currentPosition]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -97,6 +97,7 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
 
   const handleTileClick = (tile: MapTile) => {
     if (!tile.passable) return;
+    if (!revealedTiles.has(tile.id)) return;
     setSelectedTile(tile.id);
     onTileSelect(tile);
     if (diceRoll && reachableTiles.includes(tile.id)) {
@@ -124,29 +125,45 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
           const col = tile.id % MAP_COLS;
           const points = trianglePoints(row, col);
           const { x, y } = triangleCenter(row, col);
+          const isRevealed = revealedTiles.has(tile.id);
+          const isVisible = currentlyVisible.has(tile.id);
           const isCurrentPos = tile.id === currentPosition;
           const isReachable = reachableTiles.includes(tile.id);
           const isSelected = selectedTile === tile.id;
 
+          // Fog of war — not revealed at all
+          if (!isRevealed) {
+            return (
+              <polygon
+                key={tile.id}
+                points={points}
+                fill={FOG_FILL}
+                stroke="hsl(220 10% 18%)"
+                strokeWidth={0.5}
+                opacity={1}
+              />
+            );
+          }
+
           let fill = TILE_FILL[tile.type] || TILE_FILL.empty;
           let stroke = TILE_STROKE[tile.type] || TILE_STROKE.empty;
-          let strokeWidth = 1;
-          let opacity = 1;
+          let strokeWidth = 0.8;
+          let tileOpacity = isVisible ? 1 : 0.5; // dim previously seen but not currently visible
 
           if (isReachable) {
             stroke = 'hsl(140 70% 50%)';
-            strokeWidth = 2.5;
+            strokeWidth = 2;
           }
           if (isSelected) {
             stroke = 'hsl(280 70% 60%)';
-            strokeWidth = 2.5;
+            strokeWidth = 2;
           }
           if (isCurrentPos) {
             stroke = 'hsl(45 90% 50%)';
-            strokeWidth = 3;
+            strokeWidth = 2.5;
           }
           if (!tile.passable) {
-            opacity = 0.6;
+            tileOpacity = isVisible ? 0.7 : 0.35;
           }
 
           const icon = TILE_ICONS[tile.type];
@@ -155,28 +172,28 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
             <g
               key={tile.id}
               onClick={() => handleTileClick(tile)}
-              style={{ cursor: tile.passable ? 'pointer' : 'not-allowed' }}
+              style={{ cursor: tile.passable && isRevealed ? 'pointer' : 'default' }}
             >
               <polygon
                 points={points}
                 fill={fill}
                 stroke={stroke}
                 strokeWidth={strokeWidth}
-                opacity={opacity}
+                opacity={tileOpacity}
               />
               {isReachable && (
                 <polygon
                   points={points}
                   fill="hsl(140 70% 50%)"
-                  opacity={0.15}
+                  opacity={0.18}
                   stroke="none"
                 />
               )}
               {isCurrentPos && (
-                <circle cx={x} cy={y} r={5} fill="hsl(45 90% 50%)" stroke="hsl(0 0% 10%)" strokeWidth={1.5} />
+                <circle cx={x} cy={y} r={4} fill="hsl(45 90% 50%)" stroke="hsl(0 0% 10%)" strokeWidth={1.2} />
               )}
-              {icon && !isCurrentPos && (
-                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={11}>
+              {icon && !isCurrentPos && isVisible && (
+                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={8}>
                   {icon}
                 </text>
               )}
