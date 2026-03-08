@@ -257,15 +257,8 @@ const Game = () => {
     toast.success('Персонаж удалён. Создайте нового!');
   };
 
-  // Check for pending level-up
-  useEffect(() => {
-    if (profile) {
-      const needed = expForLevel(profile.hero_level || 1);
-      if ((profile.hero_experience || 0) >= needed) {
-        setLevelUpPending(true);
-      }
-    }
-  }, [profile?.hero_experience, profile?.hero_level]);
+
+
 
   const handleLevelUpChoice = async (skillId: string) => {
     if (!user || !profile) return;
