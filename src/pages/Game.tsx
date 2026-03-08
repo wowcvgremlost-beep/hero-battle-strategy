@@ -16,7 +16,7 @@ import BattleSystem from '@/components/game/BattleSystem';
 import ArmyScreen from '@/components/game/ArmyScreen';
 import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
 import LevelUpModal from '@/components/game/LevelUpModal';
-import { expForLevel, getRandomSkillChoices } from '@/data/skills';
+import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
