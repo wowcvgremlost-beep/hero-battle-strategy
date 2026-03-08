@@ -179,12 +179,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchBuildings(session.user.id);
             fetchArmy(session.user.id);
             fetchSpells(session.user.id);
+            fetchHeroSkills(session.user.id);
           }, 0);
         } else {
           setProfile(null);
           setBuildings([]);
           setArmy([]);
           setSpells([]);
+          setHeroSkills([]);
         }
         setLoading(false);
       }
