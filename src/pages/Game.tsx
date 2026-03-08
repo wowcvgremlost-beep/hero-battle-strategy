@@ -17,7 +17,7 @@ import type { TownId } from '@/data/towns';
 type GameTab = 'army' | 'buildings' | 'map' | 'spells';
 
 const Game = () => {
-  const { profile, buildings, army, spells, signOut, updateMapPosition, updateDay, refreshProfile } = useAuth();
+  const { profile, buildings, army, spells, signOut, updateMapPosition, updateDay, updateGold, refreshProfile } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
