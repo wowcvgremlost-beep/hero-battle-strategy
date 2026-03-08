@@ -46,6 +46,11 @@ const Game = () => {
   const [battleData, setBattleData] = useState<{ monsterPower: number; monsterName: string; goldReward: number; expReward: number } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [levelUpPending, setLevelUpPending] = useState(false);
+  const [pvpTarget, setPvpTarget] = useState<{
+    user_id: string; character_name: string | null; town: string | null;
+    hero_level: number; hero_attack: number; hero_defense: number;
+    hero_spellpower: number; gold: number;
+  } | null>(null);
 
   // Convert heroSkills array to a map
   const skillsMap: Record<string, number> = {};
