@@ -59,15 +59,6 @@ const Game = () => {
     // Info only
   };
 
-  // Calculate daily income from buildings
-  const calculateDailyIncome = useCallback((): number => {
-    const builtIds = buildings.map(b => b.building_id);
-    let income = 0;
-    if (builtIds.includes('capitol')) income = 4000;
-    else if (builtIds.includes('municipality')) income = 2000;
-    else if (builtIds.includes('prefecture')) income = 1000;
-    return income;
-  }, [buildings]);
 
   const handleMove = async (tileId: number) => {
     const tile = getTileById(tileId);
