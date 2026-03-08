@@ -211,6 +211,7 @@ function generateMap(): MapTile[] {
         expReward: s.expReward,
         monsterPower: s.monsterPower,
         passable: s.type !== 'water' && s.type !== 'mountain',
+        npcQuestId: s.npcQuestId,
       });
     } else {
       tiles.push({
