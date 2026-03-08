@@ -5,7 +5,7 @@ import { TOWNS, type TownId } from '@/data/towns';
 import { TOWN_BUILDINGS } from '@/data/buildings';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Swords, Shield, Heart, Zap, Coins, ShoppingCart, Lock, Info, Ban } from 'lucide-react';
+import { Swords, Shield, Heart, Zap, Coins, ShoppingCart, Lock, Info, Ban, Minus, Plus } from 'lucide-react';
 
 interface ArmyScreenProps {
   townId: TownId;
@@ -18,6 +18,7 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
   const { user, profile, army, buildings, refreshArmy, updateGold } = useAuth();
   const town = TOWNS.find(t => t.id === townId);
   const [buying, setBuying] = useState(false);
+  const [hireAmounts, setHireAmounts] = useState<Record<string, number>>({});
 
   if (!town) return null;
 
@@ -54,14 +55,34 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
     return creaturePool[unitName] || 0;
   };
 
-  const hireUnit = async (unitName: string, cost: number) => {
-    if (!user || !profile || buying) return;
-    const available = getAvailable(unitName);
-    if (available <= 0) {
-      toast.error('Нет доступных существ для найма!');
+  const getHireAmount = (unitName: string): number => {
+    return hireAmounts[unitName] || 1;
+  };
+
+  const setHireAmount = (unitName: string, val: number) => {
+    setHireAmounts(prev => ({ ...prev, [unitName]: val }));
+  };
+
+  const handleHireAmountChange = (unitName: string, input: string) => {
+    const num = parseInt(input);
+    if (isNaN(num) || num < 0) {
+      setHireAmount(unitName, 0);
       return;
     }
-    if (profile.gold < cost) {
+    const available = getAvailable(unitName);
+    setHireAmount(unitName, Math.min(num, available));
+  };
+
+  const hireUnit = async (unitName: string, costPerUnit: number, amount: number) => {
+    if (!user || !profile || buying || amount <= 0) return;
+    const available = getAvailable(unitName);
+    const actualAmount = Math.min(amount, available);
+    if (actualAmount <= 0) {
+      toast.error('Нет доступных существ!');
+      return;
+    }
+    const totalCost = costPerUnit * actualAmount;
+    if (profile.gold < totalCost) {
       toast.error('Недостаточно золота!');
       return;
     }
@@ -71,26 +92,39 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
       const existing = army.find(a => a.unit_name === unitName);
       if (existing) {
         await supabase.from('player_army')
-          .update({ count: existing.count + 1, updated_at: new Date().toISOString() })
+          .update({ count: existing.count + actualAmount, updated_at: new Date().toISOString() })
           .eq('user_id', user.id)
           .eq('unit_name', unitName);
       } else {
         await supabase.from('player_army').insert({
           user_id: user.id,
           unit_name: unitName,
-          count: 1,
+          count: actualAmount,
         });
       }
 
-      await updateGold(profile.gold - cost);
-      onHire(unitName, 1);
+      await updateGold(profile.gold - totalCost);
+      onHire(unitName, actualAmount);
       await refreshArmy();
-      toast.success(`Нанят: ${unitName}`);
+      setHireAmount(unitName, 1);
+      toast.success(`Нанято: ${actualAmount}x ${unitName} (${totalCost.toLocaleString()} золота)`);
     } catch (err: any) {
       toast.error(err.message || 'Ошибка найма');
     } finally {
       setBuying(false);
     }
+  };
+
+  const hireAll = async (unitName: string, costPerUnit: number) => {
+    const available = getAvailable(unitName);
+    if (!profile || available <= 0) return;
+    const maxAffordable = Math.floor(profile.gold / costPerUnit);
+    const amount = Math.min(available, maxAffordable);
+    if (amount <= 0) {
+      toast.error('Недостаточно золота!');
+      return;
+    }
+    await hireUnit(unitName, costPerUnit, amount);
   };
 
   const totalPower = army.reduce((sum, unit) => {
@@ -118,9 +152,11 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
         {town.units.map((u, i) => {
           const count = getUnitCount(u.name);
           const available = getAvailable(u.name);
-          const affordable = (profile?.gold || 0) >= u.cost;
           const unlocked = isUnitUnlocked(u.level);
           const buildingName = getUnitBuildingName(u.level);
+          const hireAmt = getHireAmount(u.name);
+          const totalCost = u.cost * hireAmt;
+          const affordable = (profile?.gold || 0) >= totalCost && hireAmt > 0;
 
           return (
             <motion.div
@@ -180,34 +216,82 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
                 Прирост: {u.growth}/нед. | {u.movement} | {u.status}
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <Coins className="h-3 w-3 text-gold" />
-                  <span className={`text-xs font-semibold ${affordable ? 'text-gold' : 'text-crimson'}`}>
-                    {u.cost.toLocaleString()} золота
-                  </span>
-                </div>
-                {unlocked ? (
-                  available > 0 ? (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => hireUnit(u.name, u.cost)}
-                      disabled={!affordable || buying}
-                      className="rounded-lg bg-gradient-crimson px-3 py-1.5 font-display text-[10px] font-bold text-accent-foreground disabled:opacity-40 flex items-center gap-1"
-                    >
-                      <ShoppingCart className="h-3 w-3" />
-                      НАНЯТЬ
-                    </motion.button>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground">Пул пуст (ждите неделю)</span>
-                  )
+              {unlocked ? (
+                available > 0 ? (
+                  <div className="space-y-2">
+                    {/* Quantity controls */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 flex-1">
+                        <button
+                          onClick={() => setHireAmount(u.name, Math.max(1, hireAmt - 1))}
+                          className="rounded-lg bg-secondary p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={available}
+                          value={hireAmt}
+                          onChange={(e) => handleHireAmountChange(u.name, e.target.value)}
+                          className="w-14 text-center rounded-lg bg-secondary border border-border px-1 py-1 text-xs font-bold text-foreground focus:outline-none focus:border-gold/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => setHireAmount(u.name, Math.min(available, hireAmt + 1))}
+                          className="rounded-lg bg-secondary p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Coins className="h-3 w-3 text-gold" />
+                        <span className={`text-xs font-semibold ${affordable ? 'text-gold' : 'text-crimson'}`}>
+                          {totalCost.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Hire buttons */}
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => hireUnit(u.name, u.cost, hireAmt)}
+                        disabled={!affordable || buying}
+                        className="flex-1 rounded-lg bg-gradient-crimson px-3 py-2 font-display text-[10px] font-bold text-accent-foreground disabled:opacity-40 flex items-center justify-center gap-1"
+                      >
+                        <ShoppingCart className="h-3 w-3" />
+                        НАНЯТЬ {hireAmt}
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => hireAll(u.name, u.cost)}
+                        disabled={buying || (profile?.gold || 0) < u.cost}
+                        className="rounded-lg bg-gradient-gold px-3 py-2 font-display text-[10px] font-bold text-primary-foreground disabled:opacity-40"
+                      >
+                        ВСЕ
+                      </motion.button>
+                    </div>
+                  </div>
                 ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Coins className="h-3 w-3 text-gold" />
+                      <span className="text-xs font-semibold text-gold">{u.cost.toLocaleString()} за ед.</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Пул пуст (ждите неделю)</span>
+                  </div>
+                )
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Coins className="h-3 w-3 text-gold" />
+                    <span className="text-xs font-semibold text-muted-foreground">{u.cost.toLocaleString()} за ед.</span>
+                  </div>
                   <div className="flex items-center gap-1 text-muted-foreground">
                     <Lock className="h-3 w-3" />
                     <span className="text-[10px]">Постройте: {buildingName}</span>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </motion.div>
           );
         })}
