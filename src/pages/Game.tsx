@@ -471,6 +471,12 @@ const Game = () => {
             <HeroSkillsScreen heroSkills={skillsMap} />
           </motion.div>
         )}
+
+        {tab === 'leaderboard' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Leaderboard />
+          </motion.div>
+        )}
       </div>
 
       {levelUpPending && (
@@ -490,6 +496,13 @@ const Game = () => {
           expReward={battleData.expReward}
           onClose={() => setBattleData(null)}
           onVictory={() => setBattleData(null)}
+        />
+      )}
+
+      {pvpTarget && (
+        <PvPBattle
+          target={pvpTarget}
+          onClose={() => setPvpTarget(null)}
         />
       )}
     </div>
