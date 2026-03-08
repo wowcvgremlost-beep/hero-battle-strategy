@@ -82,6 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [buildings, setBuildings] = useState<PlayerBuilding[]>([]);
   const [army, setArmy] = useState<PlayerArmy[]>([]);
   const [spells, setSpells] = useState<PlayerSpell[]>([]);
+  const [heroSkills, setHeroSkills] = useState<HeroSkill[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
