@@ -172,7 +172,7 @@ const Game = () => {
     }
   }, [profile?.hero_experience, profile?.hero_level]);
 
-
+  if (!profile?.hero_id && town) {
     return (
       <div className="min-h-screen bg-gradient-dark px-4 py-8">
         <div className="max-w-lg mx-auto">
