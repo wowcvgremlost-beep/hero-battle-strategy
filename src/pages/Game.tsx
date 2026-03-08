@@ -457,7 +457,22 @@ const Game = () => {
             <SpellsScreen mageGuildLevel={mageGuildLevel} />
           </motion.div>
         )}
+
+        {tab === 'skills' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <HeroSkillsScreen heroSkills={skillsMap} />
+          </motion.div>
+        )}
       </div>
+
+      {levelUpPending && (
+        <LevelUpModal
+          level={(profile?.hero_level || 1) + 1}
+          choices={getRandomSkillChoices(skillsMap)}
+          currentSkills={skillsMap}
+          onChoose={handleLevelUpChoice}
+        />
+      )}
 
       {battleData && (
         <BattleSystem
