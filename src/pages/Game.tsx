@@ -21,7 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills';
 
 // Calculate weekly growth for a unit based on buildings
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
