@@ -64,6 +64,7 @@ const TILE_ICONS: Record<string, string> = {
   treasure: '💰',
   mine: '⛏️',
   monster: '💀',
+  npc: '❓',
   empty: '',
 };
 
