@@ -1,4 +1,4 @@
-export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'empty';
+export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'empty';
 
 export interface MapTile {
   id: number;
@@ -8,6 +8,7 @@ export interface MapTile {
   expReward?: number;
   monsterPower?: number;
   passable: boolean;
+  npcQuestId?: string;
 }
 
 export const MAP_COLS = 60;
@@ -157,6 +158,29 @@ function generateMap(): MapTile[] {
     }
   }
 
+  // NPC quest givers
+  const npcPositions: [number, string, string][] = [
+    [3 * MAP_COLS + 10, 'Староста', 'kill_goblins'],
+    [7 * MAP_COLS + 40, 'Купец', 'collect_gold_1'],
+    [12 * MAP_COLS + 25, 'Следопыт', 'explore_tiles'],
+    [18 * MAP_COLS + 8, 'Архитектор', 'build_first'],
+    [22 * MAP_COLS + 45, 'Генерал', 'hire_army'],
+    [28 * MAP_COLS + 15, 'Охотник', 'kill_strong'],
+    [33 * MAP_COLS + 50, 'Банкир', 'collect_gold_2'],
+    [38 * MAP_COLS + 30, 'Мудрец', 'explore_far'],
+    [42 * MAP_COLS + 12, 'Мастер', 'build_many'],
+    [46 * MAP_COLS + 38, 'Маршал', 'hire_legion'],
+    [6 * MAP_COLS + 20, 'Оракул', 'kill_bosses'],
+    [14 * MAP_COLS + 48, 'Дракон', 'collect_gold_3'],
+    [26 * MAP_COLS + 5, 'Странник', 'explore_world'],
+    [36 * MAP_COLS + 42, 'Полководец', 'hire_horde'],
+  ];
+  for (const [pos, name, questId] of npcPositions) {
+    if (pos >= 0 && pos < total) {
+      specific[pos] = { type: 'npc' as TileType, name: `NPC: ${name}`, npcQuestId: questId };
+    }
+  }
+
   // Roads connecting cities
   for (const [r, c] of cities) {
     const startR = r as number, startC = c as number;
@@ -187,6 +211,7 @@ function generateMap(): MapTile[] {
         expReward: s.expReward,
         monsterPower: s.monsterPower,
         passable: s.type !== 'water' && s.type !== 'mountain',
+        npcQuestId: s.npcQuestId,
       });
     } else {
       tiles.push({

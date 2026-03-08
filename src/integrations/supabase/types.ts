@@ -125,6 +125,39 @@ export type Database = {
         }
         Relationships: []
       }
+      player_quests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          progress: number
+          quest_id: string
+          status: string
+          target: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          quest_id: string
+          status?: string
+          target?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          progress?: number
+          quest_id?: string
+          status?: string
+          target?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_spells: {
         Row: {
           created_at: string

@@ -6,7 +6,7 @@ import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -18,12 +18,14 @@ import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
 import LevelUpModal from '@/components/game/LevelUpModal';
 import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
+import QuestScreen from '@/components/game/QuestScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
+import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests';
 
 // Calculate weekly growth for a unit based on buildings
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
@@ -196,6 +198,41 @@ const Game = () => {
 
   const handleTileSelect = (tile: MapTile) => {};
 
+  // Quest progress helper
+  const updateQuestProgress = async (type: string, increment: number = 1) => {
+    if (!user) return;
+    const { data: activeQuests } = await supabase
+      .from('player_quests')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active');
+    
+    if (!activeQuests) return;
+
+    // Map quest types to quest IDs
+    const typeToQuestIds: Record<string, string[]> = {
+      kill: ['kill_goblins', 'kill_strong', 'kill_bosses'],
+      explore: ['explore_tiles', 'explore_far', 'explore_world'],
+      build: ['build_first', 'build_many'],
+      hire: ['hire_army', 'hire_legion', 'hire_horde'],
+      collect_gold: ['collect_gold_1', 'collect_gold_2', 'collect_gold_3'],
+    };
+
+    const relevantIds = typeToQuestIds[type] || [];
+    for (const quest of activeQuests) {
+      if (relevantIds.includes(quest.quest_id)) {
+        const newProgress = type === 'collect_gold' 
+          ? increment // absolute value for gold
+          : (quest as any).progress + increment;
+        await supabase.from('player_quests')
+          .update({ progress: Math.min(newProgress, (quest as any).target) })
+          .eq('id', (quest as any).id);
+      }
+    }
+  };
+
+  const weekNumber = getWeekNumber(profile?.day || 1);
+
   const handleMove = async (tileId: number) => {
     const tile = getTileById(tileId);
     if (!tile) return;
@@ -211,16 +248,24 @@ const Game = () => {
       return next;
     });
 
+    // Track exploration progress
+    updateQuestProgress('explore', revealedTiles.size);
+
     if (tile.type === 'monster' && tile.monsterPower) {
+      const scaledPower = getScaledMonsterPower(tile.monsterPower, weekNumber);
+      const { gold, exp } = getScaledRewards(tile.goldReward || 0, tile.expReward || 0, weekNumber);
       setBattleData({
-        monsterPower: tile.monsterPower,
-        monsterName: tile.name,
-        goldReward: tile.goldReward || 0,
-        expReward: tile.expReward || 0,
+        monsterPower: scaledPower,
+        monsterName: `${tile.name} (Нед.${weekNumber})`,
+        goldReward: gold,
+        expReward: exp,
       });
+    } else if (tile.type === 'npc') {
+      toast.info(`📜 ${tile.name} — откройте вкладку КВЕСТЫ для задания`);
     } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
       const newGold = (profile?.gold || 0) + tile.goldReward;
       await updateGold(newGold);
+      updateQuestProgress('collect_gold', newGold);
       toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
     }
   };
@@ -252,6 +297,7 @@ const Game = () => {
       supabase.from('player_spells').delete().eq('user_id', user.id),
       supabase.from('battles').delete().eq('attacker_id', user.id),
       supabase.from('hero_skills').delete().eq('user_id', user.id),
+      supabase.from('player_quests').delete().eq('user_id', user.id),
     ]);
     await supabase.from('profiles').update({
       character_created: false, character_name: null, town: null, hero_id: null,
@@ -391,6 +437,7 @@ const Game = () => {
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
+            { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
             { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
           ]).map((t) => (
             <button
@@ -477,6 +524,12 @@ const Game = () => {
             <Leaderboard />
           </motion.div>
         )}
+
+        {tab === 'quests' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <QuestScreen />
+          </motion.div>
+        )}
       </div>
 
       {levelUpPending && (
@@ -495,7 +548,10 @@ const Game = () => {
           goldReward={battleData.goldReward}
           expReward={battleData.expReward}
           onClose={() => setBattleData(null)}
-          onVictory={() => setBattleData(null)}
+          onVictory={() => {
+            updateQuestProgress('kill');
+            setBattleData(null);
+          }}
         />
       )}
 
