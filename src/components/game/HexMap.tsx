@@ -50,6 +50,7 @@ const TILE_STROKE: Record<string, string> = {
   treasure: 'hsl(45 80% 45%)',
   mine: 'hsl(280 40% 40%)',
   monster: 'hsl(0 50% 35%)',
+  npc: 'hsl(180 50% 35%)',
   empty: 'hsl(0 0% 75%)',
 };
 
