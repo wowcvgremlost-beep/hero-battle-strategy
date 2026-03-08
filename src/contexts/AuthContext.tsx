@@ -200,6 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchBuildings(session.user.id);
         fetchArmy(session.user.id);
         fetchSpells(session.user.id);
+        fetchHeroSkills(session.user.id);
       }
       setLoading(false);
     });
