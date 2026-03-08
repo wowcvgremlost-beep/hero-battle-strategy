@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          character_created: boolean
+          character_name: string | null
+          created_at: string
+          id: string
+          town: Database["public"]["Enums"]["game_town"] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          character_created?: boolean
+          character_name?: string | null
+          created_at?: string
+          id?: string
+          town?: Database["public"]["Enums"]["game_town"] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          character_created?: boolean
+          character_name?: string | null
+          created_at?: string
+          id?: string
+          town?: Database["public"]["Enums"]["game_town"] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +52,18 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      game_town:
+        | "castle"
+        | "rampart"
+        | "tower"
+        | "inferno"
+        | "necropolis"
+        | "dungeon"
+        | "stronghold"
+        | "fortress"
+        | "conflux"
+        | "cove"
+        | "factory"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +190,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      game_town: [
+        "castle",
+        "rampart",
+        "tower",
+        "inferno",
+        "necropolis",
+        "dungeon",
+        "stronghold",
+        "fortress",
+        "conflux",
+        "cove",
+        "factory",
+      ],
+    },
   },
 } as const
