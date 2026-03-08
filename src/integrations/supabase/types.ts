@@ -14,12 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      battles: {
+        Row: {
+          attacker_id: string
+          attacker_power: number
+          created_at: string
+          defender_id: string | null
+          defender_power: number
+          exp_reward: number
+          gold_reward: number
+          id: string
+          is_pve: boolean
+          winner_id: string | null
+        }
+        Insert: {
+          attacker_id: string
+          attacker_power: number
+          created_at?: string
+          defender_id?: string | null
+          defender_power: number
+          exp_reward?: number
+          gold_reward?: number
+          id?: string
+          is_pve?: boolean
+          winner_id?: string | null
+        }
+        Update: {
+          attacker_id?: string
+          attacker_power?: number
+          created_at?: string
+          defender_id?: string | null
+          defender_power?: number
+          exp_reward?: number
+          gold_reward?: number
+          id?: string
+          is_pve?: boolean
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      player_army: {
+        Row: {
+          count: number
+          created_at: string
+          id: string
+          unit_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          id?: string
+          unit_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          id?: string
+          unit_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      player_buildings: {
+        Row: {
+          building_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          building_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          building_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      player_spells: {
+        Row: {
+          created_at: string
+          id: string
+          spell_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          spell_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          spell_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           character_created: boolean
           character_name: string | null
           created_at: string
+          day: number
+          gold: number
+          hero_attack: number
+          hero_defense: number
+          hero_experience: number
+          hero_id: string | null
+          hero_knowledge: number
+          hero_level: number
+          hero_spellpower: number
           id: string
+          mana: number
+          map_position: number
           town: Database["public"]["Enums"]["game_town"] | null
           updated_at: string
           user_id: string
@@ -28,7 +147,18 @@ export type Database = {
           character_created?: boolean
           character_name?: string | null
           created_at?: string
+          day?: number
+          gold?: number
+          hero_attack?: number
+          hero_defense?: number
+          hero_experience?: number
+          hero_id?: string | null
+          hero_knowledge?: number
+          hero_level?: number
+          hero_spellpower?: number
           id?: string
+          mana?: number
+          map_position?: number
           town?: Database["public"]["Enums"]["game_town"] | null
           updated_at?: string
           user_id: string
@@ -37,7 +167,18 @@ export type Database = {
           character_created?: boolean
           character_name?: string | null
           created_at?: string
+          day?: number
+          gold?: number
+          hero_attack?: number
+          hero_defense?: number
+          hero_experience?: number
+          hero_id?: string | null
+          hero_knowledge?: number
+          hero_level?: number
+          hero_spellpower?: number
           id?: string
+          mana?: number
+          map_position?: number
           town?: Database["public"]["Enums"]["game_town"] | null
           updated_at?: string
           user_id?: string
