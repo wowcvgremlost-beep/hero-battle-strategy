@@ -1,12 +1,26 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { MAP_TILES, MAP_COLS, MAP_ROWS, getReachableTiles, getVisibleTiles, type MapTile } from '@/data/mapTiles';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+interface OtherPlayer {
+  user_id: string;
+  character_name: string | null;
+  town: string | null;
+  hero_level: number;
+  hero_attack: number;
+  hero_defense: number;
+  hero_spellpower: number;
+  gold: number;
+  map_position: number;
+}
 
 interface HexMapProps {
   diceRoll: number | null;
   onTileSelect: (tile: MapTile) => void;
   onMove: (tileId: number) => void;
   revealedTiles: Set<number>;
+  onAttackPlayer?: (player: OtherPlayer) => void;
 }
 
 const TRI_SIZE = 22;
@@ -71,16 +85,54 @@ function triangleCenter(row: number, col: number): { x: number; y: number } {
 
 const FOG_FILL = 'hsl(220 15% 12%)';
 
-const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles }: HexMapProps) => {
-  const { profile } = useAuth();
+const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles, onAttackPlayer }: HexMapProps) => {
+  const { profile, user } = useAuth();
   const currentPosition = profile?.map_position ?? 0;
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [otherPlayers, setOtherPlayers] = useState<OtherPlayer[]>([]);
 
   const reachableTiles = diceRoll ? getReachableTiles(currentPosition, diceRoll) : [];
-
-  // Currently visible tiles (around player)
   const currentlyVisible = useMemo(() => getVisibleTiles(currentPosition, 4), [currentPosition]);
+
+  // Fetch other players and subscribe to realtime
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchPlayers = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, character_name, town, hero_level, hero_attack, hero_defense, hero_spellpower, gold, map_position')
+        .eq('character_created', true)
+        .neq('user_id', user.id);
+      setOtherPlayers((data as OtherPlayer[]) || []);
+    };
+
+    fetchPlayers();
+
+    const channel = supabase
+      .channel('players-map')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'profiles',
+      }, () => {
+        fetchPlayers();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Build map of tile -> player for quick lookup
+  const playersByTile = useMemo(() => {
+    const map = new Map<number, OtherPlayer[]>();
+    otherPlayers.forEach(p => {
+      if (!map.has(p.map_position)) map.set(p.map_position, []);
+      map.get(p.map_position)!.push(p);
+    });
+    return map;
+  }, [otherPlayers]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -98,6 +150,14 @@ const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles }: HexMapProps) 
   const handleTileClick = (tile: MapTile) => {
     if (!tile.passable) return;
     if (!revealedTiles.has(tile.id)) return;
+
+    // Check if there's a player on this tile and it's reachable
+    const playersOnTile = playersByTile.get(tile.id);
+    if (playersOnTile && playersOnTile.length > 0 && reachableTiles.includes(tile.id) && onAttackPlayer) {
+      onAttackPlayer(playersOnTile[0]);
+      return;
+    }
+
     setSelectedTile(tile.id);
     onTileSelect(tile);
     if (diceRoll && reachableTiles.includes(tile.id)) {
@@ -130,8 +190,9 @@ const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles }: HexMapProps) 
           const isCurrentPos = tile.id === currentPosition;
           const isReachable = reachableTiles.includes(tile.id);
           const isSelected = selectedTile === tile.id;
+          const playersHere = playersByTile.get(tile.id);
+          const hasEnemy = playersHere && playersHere.length > 0 && isVisible;
 
-          // Fog of war — not revealed at all
           if (!isRevealed) {
             return (
               <polygon
@@ -148,11 +209,15 @@ const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles }: HexMapProps) 
           let fill = TILE_FILL[tile.type] || TILE_FILL.empty;
           let stroke = TILE_STROKE[tile.type] || TILE_STROKE.empty;
           let strokeWidth = 0.8;
-          let tileOpacity = isVisible ? 1 : 0.5; // dim previously seen but not currently visible
+          let tileOpacity = isVisible ? 1 : 0.5;
 
           if (isReachable) {
             stroke = 'hsl(140 70% 50%)';
             strokeWidth = 2;
+          }
+          if (hasEnemy && isReachable) {
+            stroke = 'hsl(0 80% 55%)';
+            strokeWidth = 2.5;
           }
           if (isSelected) {
             stroke = 'hsl(280 70% 60%)';
@@ -192,12 +257,25 @@ const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles }: HexMapProps) 
               {isCurrentPos && (
                 <circle cx={x} cy={y} r={4} fill="hsl(45 90% 50%)" stroke="hsl(0 0% 10%)" strokeWidth={1.2} />
               )}
-              {icon && !isCurrentPos && isVisible && (
+              {hasEnemy && !isCurrentPos && (
+                <>
+                  <circle cx={x} cy={y} r={4} fill="hsl(0 70% 50%)" stroke="hsl(0 0% 100%)" strokeWidth={0.8} />
+                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fontSize={5} fill="white" fontWeight="bold">
+                    ⚔
+                  </text>
+                </>
+              )}
+              {icon && !isCurrentPos && !hasEnemy && isVisible && (
                 <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={8}>
                   {icon}
                 </text>
               )}
-              <title>{tile.name}{tile.monsterPower ? ` (⚔${tile.monsterPower})` : ''}{tile.goldReward ? ` (💰${tile.goldReward})` : ''}</title>
+              <title>
+                {tile.name}
+                {tile.monsterPower ? ` (⚔${tile.monsterPower})` : ''}
+                {tile.goldReward ? ` (💰${tile.goldReward})` : ''}
+                {hasEnemy ? ` 👤${playersHere![0].character_name} Ур.${playersHere![0].hero_level}` : ''}
+              </title>
             </g>
           );
         })}
