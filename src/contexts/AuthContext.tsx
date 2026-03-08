@@ -216,12 +216,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setBuildings([]);
     setArmy([]);
     setSpells([]);
+    setHeroSkills([]);
   };
 
   return (
     <AuthContext.Provider value={{ 
-      user, session, profile, buildings, army, spells, loading, 
-      signOut, refreshProfile, refreshBuildings, refreshArmy, refreshSpells,
+      user, session, profile, buildings, army, spells, heroSkills, loading, 
+      signOut, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills,
       updateGold, updateMana, updateMapPosition, updateDay, updateHeroStats, setBuiltThisTurn
     }}>
       {children}
