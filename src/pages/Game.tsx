@@ -547,7 +547,10 @@ const Game = () => {
           goldReward={battleData.goldReward}
           expReward={battleData.expReward}
           onClose={() => setBattleData(null)}
-          onVictory={() => setBattleData(null)}
+          onVictory={() => {
+            updateQuestProgress('kill');
+            setBattleData(null);
+          }}
         />
       )}
 
