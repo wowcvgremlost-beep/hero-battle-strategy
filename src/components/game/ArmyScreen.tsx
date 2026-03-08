@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS, type TownId } from '@/data/towns';
+import { TOWN_BUILDINGS } from '@/data/buildings';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Swords, Shield, Heart, Zap, Coins, ShoppingCart, Users } from 'lucide-react';
+import { Swords, Shield, Heart, Zap, Coins, ShoppingCart, Lock, Info } from 'lucide-react';
 
 interface ArmyScreenProps {
   townId: TownId;
@@ -17,8 +18,19 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
 
   if (!town) return null;
 
-  // Check which creature buildings are built to determine which units can be hired
   const builtBuildingIds = buildings.map(b => b.building_id);
+  const townCreatureBuildings = TOWN_BUILDINGS[townId] || [];
+
+  // Map unit level to creature building: lv1 building unlocks level 1 unit, etc.
+  const isUnitUnlocked = (unitLevel: number): boolean => {
+    const building = townCreatureBuildings[unitLevel - 1];
+    return building ? builtBuildingIds.includes(building.id) : false;
+  };
+
+  const getUnitBuildingName = (unitLevel: number): string => {
+    const building = townCreatureBuildings[unitLevel - 1];
+    return building?.name || '';
+  };
 
   const getUnitCount = (unitName: string): number => {
     return army.find(a => a.unit_name === unitName)?.count || 0;
@@ -57,7 +69,6 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
     }
   };
 
-  // Calculate total army power
   const totalPower = army.reduce((sum, unit) => {
     const unitData = town.units.find(u => u.name === unit.unit_name);
     return sum + (unitData ? unit.count * unitData.value : 0);
@@ -65,7 +76,6 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Army summary */}
       <div className="rounded-xl border border-gold/20 bg-gradient-card p-3 flex items-center justify-between">
         <div>
           <p className="text-[10px] text-muted-foreground uppercase">Мощь армии</p>
@@ -79,12 +89,13 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
         </div>
       </div>
 
-      {/* Units list */}
       <h3 className="font-display text-sm font-bold text-gold uppercase">Найм юнитов</h3>
       <div className="space-y-2">
         {town.units.map((u, i) => {
           const count = getUnitCount(u.name);
           const affordable = (profile?.gold || 0) >= u.cost;
+          const unlocked = isUnitUnlocked(u.level);
+          const buildingName = getUnitBuildingName(u.level);
 
           return (
             <motion.div
@@ -92,7 +103,7 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
               initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="rounded-lg border border-border bg-gradient-card p-3"
+              className={`rounded-lg border p-3 ${unlocked ? 'border-border bg-gradient-card' : 'border-border/50 bg-secondary/30 opacity-70'}`}
             >
               <div className="flex items-center justify-between mb-1.5">
                 <h4 className="font-display text-sm font-bold text-foreground">{u.name}</h4>
@@ -129,10 +140,12 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
                 )}
               </div>
               {u.abilities && (
-                <p className="text-[10px] text-muted-foreground leading-tight mb-2">{u.abilities}</p>
+                <div className="flex items-start gap-1 mb-2">
+                  <Info className="h-3 w-3 text-arcane shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-arcane leading-tight">{u.abilities}</p>
+                </div>
               )}
               
-              {/* Hire button */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   <Coins className="h-3 w-3 text-gold" />
@@ -140,15 +153,22 @@ const ArmyScreen = ({ townId }: ArmyScreenProps) => {
                     {u.cost.toLocaleString()} золота
                   </span>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => hireUnit(u.name, u.cost)}
-                  disabled={!affordable || buying}
-                  className="rounded-lg bg-gradient-crimson px-3 py-1.5 font-display text-[10px] font-bold text-accent-foreground disabled:opacity-40 flex items-center gap-1"
-                >
-                  <ShoppingCart className="h-3 w-3" />
-                  НАНЯТЬ
-                </motion.button>
+                {unlocked ? (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => hireUnit(u.name, u.cost)}
+                    disabled={!affordable || buying}
+                    className="rounded-lg bg-gradient-crimson px-3 py-1.5 font-display text-[10px] font-bold text-accent-foreground disabled:opacity-40 flex items-center gap-1"
+                  >
+                    <ShoppingCart className="h-3 w-3" />
+                    НАНЯТЬ
+                  </motion.button>
+                ) : (
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Lock className="h-3 w-3" />
+                    <span className="text-[10px]">Постройте: {buildingName}</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           );

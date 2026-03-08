@@ -8,15 +8,15 @@ interface HexMapProps {
   onMove: (tileId: number) => void;
 }
 
-const HEX_SIZE = 22; // radius
-const HEX_W = HEX_SIZE * 2;
-const HEX_H = Math.sqrt(3) * HEX_SIZE;
+// Triangle grid settings
+const TRI_SIZE = 28; // side length
+const TRI_H = TRI_SIZE * Math.sqrt(3) / 2;
 
 const TILE_FILL: Record<string, string> = {
   city: 'hsl(45 80% 55%)',
-  road: 'hsl(30 15% 45%)',
-  grass: 'hsl(120 25% 82%)',
-  forest: 'hsl(140 40% 40%)',
+  road: 'hsl(30 15% 50%)',
+  grass: 'hsl(120 25% 85%)',
+  forest: 'hsl(140 40% 42%)',
   mountain: 'hsl(30 10% 55%)',
   water: 'hsl(210 60% 65%)',
   treasure: 'hsl(45 90% 60%)',
@@ -27,8 +27,8 @@ const TILE_FILL: Record<string, string> = {
 
 const TILE_STROKE: Record<string, string> = {
   city: 'hsl(45 70% 40%)',
-  road: 'hsl(30 10% 35%)',
-  grass: 'hsl(200 40% 75%)',
+  road: 'hsl(30 10% 38%)',
+  grass: 'hsl(200 40% 72%)',
   forest: 'hsl(140 35% 30%)',
   mountain: 'hsl(30 10% 40%)',
   water: 'hsl(210 50% 50%)',
@@ -51,18 +51,26 @@ const TILE_ICONS: Record<string, string> = {
   empty: '',
 };
 
-function hexCorners(cx: number, cy: number, size: number): string {
-  const points: string[] = [];
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (60 * i - 30);
-    points.push(`${cx + size * Math.cos(angle)},${cy + size * Math.sin(angle)}`);
+// Returns the 3 points of a triangle given row, col in the triangle grid
+// Even col = upward pointing triangle, odd col = downward pointing
+function trianglePoints(row: number, col: number): string {
+  const isUp = (row + col) % 2 === 0;
+  const x = col * TRI_SIZE / 2;
+  const y = row * TRI_H;
+  
+  if (isUp) {
+    // ▲ pointing up
+    return `${x},${y + TRI_H} ${x + TRI_SIZE / 2},${y} ${x + TRI_SIZE},${y + TRI_H}`;
+  } else {
+    // ▽ pointing down
+    return `${x},${y} ${x + TRI_SIZE / 2},${y + TRI_H} ${x + TRI_SIZE},${y}`;
   }
-  return points.join(' ');
 }
 
-function hexCenter(row: number, col: number): { x: number; y: number } {
-  const x = col * HEX_W * 0.75 + HEX_SIZE + 2;
-  const y = row * HEX_H + (col % 2 === 1 ? HEX_H / 2 : 0) + HEX_SIZE + 2;
+function triangleCenter(row: number, col: number): { x: number; y: number } {
+  const isUp = (row + col) % 2 === 0;
+  const x = col * TRI_SIZE / 2 + TRI_SIZE / 2;
+  const y = row * TRI_H + (isUp ? TRI_H * 2 / 3 : TRI_H / 3);
   return { x, y };
 }
 
@@ -74,12 +82,11 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
 
   const reachableTiles = diceRoll ? getReachableTiles(currentPosition, diceRoll) : [];
 
-  // Auto-scroll to player position
   useEffect(() => {
     if (containerRef.current) {
       const row = Math.floor(currentPosition / MAP_COLS);
       const col = currentPosition % MAP_COLS;
-      const { x, y } = hexCenter(row, col);
+      const { x, y } = triangleCenter(row, col);
       containerRef.current.scrollTo({
         left: x - containerRef.current.clientWidth / 2,
         top: y - containerRef.current.clientHeight / 2,
@@ -97,8 +104,8 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
     }
   };
 
-  const svgW = MAP_COLS * HEX_W * 0.75 + HEX_SIZE + 4;
-  const svgH = MAP_ROWS * HEX_H + HEX_H / 2 + 4;
+  const svgW = MAP_COLS * TRI_SIZE / 2 + TRI_SIZE / 2 + 4;
+  const svgH = MAP_ROWS * TRI_H + TRI_H + 4;
 
   return (
     <div
@@ -109,13 +116,14 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
       <svg
         width={svgW}
         height={svgH}
-        viewBox={`0 0 ${svgW} ${svgH}`}
+        viewBox={`-2 -2 ${svgW} ${svgH}`}
         className="block"
       >
         {MAP_TILES.map((tile) => {
           const row = Math.floor(tile.id / MAP_COLS);
           const col = tile.id % MAP_COLS;
-          const { x, y } = hexCenter(row, col);
+          const points = trianglePoints(row, col);
+          const { x, y } = triangleCenter(row, col);
           const isCurrentPos = tile.id === currentPosition;
           const isReachable = reachableTiles.includes(tile.id);
           const isSelected = selectedTile === tile.id;
@@ -138,7 +146,7 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
             strokeWidth = 3;
           }
           if (!tile.passable) {
-            opacity = 0.7;
+            opacity = 0.6;
           }
 
           const icon = TILE_ICONS[tile.type];
@@ -150,31 +158,28 @@ const HexMap = ({ diceRoll, onTileSelect, onMove }: HexMapProps) => {
               style={{ cursor: tile.passable ? 'pointer' : 'not-allowed' }}
             >
               <polygon
-                points={hexCorners(x, y, HEX_SIZE)}
+                points={points}
                 fill={fill}
                 stroke={stroke}
                 strokeWidth={strokeWidth}
                 opacity={opacity}
               />
-              {/* Reachable glow */}
               {isReachable && (
                 <polygon
-                  points={hexCorners(x, y, HEX_SIZE - 3)}
+                  points={points}
                   fill="hsl(140 70% 50%)"
                   opacity={0.15}
+                  stroke="none"
                 />
               )}
-              {/* Player marker */}
               {isCurrentPos && (
-                <circle cx={x} cy={y} r={6} fill="hsl(45 90% 50%)" stroke="hsl(0 0% 10%)" strokeWidth={1.5} />
+                <circle cx={x} cy={y} r={5} fill="hsl(45 90% 50%)" stroke="hsl(0 0% 10%)" strokeWidth={1.5} />
               )}
-              {/* Icon */}
               {icon && !isCurrentPos && (
-                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={14}>
+                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={11}>
                   {icon}
                 </text>
               )}
-              {/* Tooltip on hover */}
               <title>{tile.name}{tile.monsterPower ? ` (⚔${tile.monsterPower})` : ''}{tile.goldReward ? ` (💰${tile.goldReward})` : ''}</title>
             </g>
           );

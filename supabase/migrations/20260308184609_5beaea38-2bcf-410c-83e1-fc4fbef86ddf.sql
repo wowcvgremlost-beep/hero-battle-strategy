@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS built_this_turn boolean NOT NULL DEFAULT false;

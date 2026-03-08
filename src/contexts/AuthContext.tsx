@@ -19,6 +19,7 @@ interface Profile {
   hero_experience: number;
   map_position: number;
   day: number;
+  built_this_turn: boolean;
 }
 
 interface PlayerBuilding {
@@ -55,6 +56,7 @@ interface AuthContextType {
   updateMapPosition: (newPosition: number) => Promise<void>;
   updateDay: (newDay: number) => Promise<void>;
   updateHeroStats: (stats: Partial<Pick<Profile, 'hero_attack' | 'hero_defense' | 'hero_spellpower' | 'hero_knowledge' | 'hero_level' | 'hero_experience'>>) => Promise<void>;
+  setBuiltThisTurn: (val: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,21 +109,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSpells((data as PlayerSpell[]) || []);
   };
 
-  const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
-  };
-
-  const refreshBuildings = async () => {
-    if (user) await fetchBuildings(user.id);
-  };
-
-  const refreshArmy = async () => {
-    if (user) await fetchArmy(user.id);
-  };
-
-  const refreshSpells = async () => {
-    if (user) await fetchSpells(user.id);
-  };
+  const refreshProfile = async () => { if (user) await fetchProfile(user.id); };
+  const refreshBuildings = async () => { if (user) await fetchBuildings(user.id); };
+  const refreshArmy = async () => { if (user) await fetchArmy(user.id); };
+  const refreshSpells = async () => { if (user) await fetchSpells(user.id); };
 
   const updateGold = async (newGold: number) => {
     if (!user) return;
@@ -143,13 +134,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateDay = async (newDay: number) => {
     if (!user) return;
-    await supabase.from('profiles').update({ day: newDay }).eq('user_id', user.id);
+    await supabase.from('profiles').update({ day: newDay, built_this_turn: false }).eq('user_id', user.id);
     await refreshProfile();
   };
 
   const updateHeroStats = async (stats: Partial<Pick<Profile, 'hero_attack' | 'hero_defense' | 'hero_spellpower' | 'hero_knowledge' | 'hero_level' | 'hero_experience'>>) => {
     if (!user) return;
     await supabase.from('profiles').update(stats).eq('user_id', user.id);
+    await refreshProfile();
+  };
+
+  const setBuiltThisTurn = async (val: boolean) => {
+    if (!user) return;
+    await supabase.from('profiles').update({ built_this_turn: val }).eq('user_id', user.id);
     await refreshProfile();
   };
 
@@ -204,7 +201,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider value={{ 
       user, session, profile, buildings, army, spells, loading, 
       signOut, refreshProfile, refreshBuildings, refreshArmy, refreshSpells,
-      updateGold, updateMana, updateMapPosition, updateDay, updateHeroStats
+      updateGold, updateMana, updateMapPosition, updateDay, updateHeroStats, setBuiltThisTurn
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
@@ -17,7 +17,7 @@ import type { TownId } from '@/data/towns';
 type GameTab = 'army' | 'buildings' | 'map' | 'spells';
 
 const Game = () => {
-  const { profile, buildings, army, spells, signOut, updateMapPosition, updateDay, refreshProfile } = useAuth();
+  const { profile, buildings, army, spells, signOut, updateMapPosition, updateDay, updateGold, refreshProfile } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
@@ -29,6 +29,16 @@ const Game = () => {
     : buildings.some(b => b.building_id === 'mage_guild_3') ? 3
     : buildings.some(b => b.building_id === 'mage_guild_2') ? 2
     : buildings.some(b => b.building_id === 'mage_guild_1') ? 1 : 0;
+
+  // Calculate daily income from buildings
+  const calculateDailyIncome = useCallback((): number => {
+    const builtIds = buildings.map(b => b.building_id);
+    let income = 0;
+    if (builtIds.includes('capitol')) income = 4000;
+    else if (builtIds.includes('municipality')) income = 2000;
+    else if (builtIds.includes('prefecture')) income = 1000;
+    return income;
+  }, [buildings]);
 
   // If no hero selected, show hero selection
   if (!profile?.hero_id && town) {
@@ -49,6 +59,7 @@ const Game = () => {
     // Info only
   };
 
+
   const handleMove = async (tileId: number) => {
     const tile = getTileById(tileId);
     if (!tile) return;
@@ -56,7 +67,6 @@ const Game = () => {
     await updateMapPosition(tileId);
     setDiceRoll(null);
 
-    // Handle tile effects
     if (tile.type === 'monster' && tile.monsterPower) {
       setBattleData({
         monsterPower: tile.monsterPower,
@@ -64,17 +74,22 @@ const Game = () => {
         goldReward: tile.goldReward || 0,
         expReward: tile.expReward || 0,
       });
-    } else if (tile.type === 'treasure' || tile.type === 'mine') {
-      // Auto-collect
-      if (tile.goldReward) {
-        const { updateGold } = await import('@/contexts/AuthContext').then(() => ({ updateGold: async (g: number) => {} }));
-        // Handled separately in component
-      }
+    } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
+      const newGold = (profile?.gold || 0) + tile.goldReward;
+      await updateGold(newGold);
+      const { toast } = await import('sonner');
+      toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
     }
   };
 
   const handleEndTurn = async () => {
     if (!profile) return;
+    const income = calculateDailyIncome();
+    if (income > 0) {
+      await updateGold((profile.gold || 0) + income);
+      const { toast } = await import('sonner');
+      toast.success(`Доход: +${income} золота`);
+    }
     await updateDay((profile.day || 1) + 1);
     setDiceRoll(null);
   };

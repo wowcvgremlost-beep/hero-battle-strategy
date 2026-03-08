@@ -124,6 +124,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          built_this_turn: boolean
           character_created: boolean
           character_name: string | null
           created_at: string
@@ -144,6 +145,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          built_this_turn?: boolean
           character_created?: boolean
           character_name?: string | null
           created_at?: string
@@ -164,6 +166,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          built_this_turn?: boolean
           character_created?: boolean
           character_name?: string | null
           created_at?: string
