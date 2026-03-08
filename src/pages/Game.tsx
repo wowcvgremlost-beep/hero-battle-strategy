@@ -16,6 +16,8 @@ import BattleSystem from '@/components/game/BattleSystem';
 import ArmyScreen from '@/components/game/ArmyScreen';
 import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
 import LevelUpModal from '@/components/game/LevelUpModal';
+import Leaderboard from '@/components/game/Leaderboard';
+import PvPBattle from '@/components/game/PvPBattle';
 import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
