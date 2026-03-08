@@ -288,7 +288,7 @@ const Game = () => {
 
     await refreshHeroSkills();
     setLevelUpPending(false);
-    toast.success(`Уровень ${newLevel}! ${SKILLS_LOOKUP[skillId] || skillId} улучшен!`);
+    toast.success(`Уровень ${newLevel}! ${SKILLS.find(s => s.id === skillId)?.name || skillId} улучшен!`);
   };
 
   const currentTile = getTileById(profile?.map_position || 0);
