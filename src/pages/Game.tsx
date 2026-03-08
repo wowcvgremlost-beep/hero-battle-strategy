@@ -35,14 +35,19 @@ function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boo
 }
 
 const Game = () => {
-  const { user, profile, buildings, army, spells, signOut, updateMapPosition, updateDay, updateGold, refreshProfile, refreshBuildings, refreshArmy, refreshSpells } = useAuth();
+  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
   const [diceRoll, setDiceRoll] = useState<number | null>(null);
-  const [diceUsed, setDiceUsed] = useState(false); // one roll per turn
+  const [diceUsed, setDiceUsed] = useState(false);
   const [battleData, setBattleData] = useState<{ monsterPower: number; monsterName: string; goldReward: number; expReward: number } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [levelUpPending, setLevelUpPending] = useState(false);
+
+  // Convert heroSkills array to a map
+  const skillsMap: Record<string, number> = {};
+  heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
 
   // Creature pool: how many of each unit are available to hire this week
   // Stored in localStorage, reset each week
