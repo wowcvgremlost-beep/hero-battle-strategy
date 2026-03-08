@@ -234,6 +234,7 @@ const Game = () => {
       supabase.from('player_army').delete().eq('user_id', user.id),
       supabase.from('player_spells').delete().eq('user_id', user.id),
       supabase.from('battles').delete().eq('attacker_id', user.id),
+      supabase.from('hero_skills').delete().eq('user_id', user.id),
     ]);
     await supabase.from('profiles').update({
       character_created: false, character_name: null, town: null, hero_id: null,
@@ -252,7 +253,42 @@ const Game = () => {
     await refreshBuildings();
     await refreshArmy();
     await refreshSpells();
+    await refreshHeroSkills();
     toast.success('Персонаж удалён. Создайте нового!');
+  };
+
+  // Check for pending level-up
+  useEffect(() => {
+    if (profile) {
+      const needed = expForLevel(profile.hero_level || 1);
+      if ((profile.hero_experience || 0) >= needed) {
+        setLevelUpPending(true);
+      }
+    }
+  }, [profile?.hero_experience, profile?.hero_level]);
+
+  const handleLevelUpChoice = async (skillId: string) => {
+    if (!user || !profile) return;
+    const needed = expForLevel(profile.hero_level);
+    const newLevel = profile.hero_level + 1;
+    const leftoverExp = (profile.hero_experience || 0) - needed;
+
+    // Upsert skill
+    const currentLevel = skillsMap[skillId] || 0;
+    await supabase.from('hero_skills').upsert({
+      user_id: user.id,
+      skill_id: skillId,
+      skill_level: currentLevel + 1,
+    }, { onConflict: 'user_id,skill_id' });
+
+    await updateHeroStats({
+      hero_level: newLevel,
+      hero_experience: Math.max(0, leftoverExp),
+    });
+
+    await refreshHeroSkills();
+    setLevelUpPending(false);
+    toast.success(`Уровень ${newLevel}! ${SKILLS_LOOKUP[skillId] || skillId} улучшен!`);
   };
 
   const currentTile = getTileById(profile?.map_position || 0);
