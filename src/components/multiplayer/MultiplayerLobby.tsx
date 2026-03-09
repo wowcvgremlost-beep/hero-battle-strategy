@@ -133,8 +133,9 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
         return;
       }
 
-      const roomData = data.room as RoomData;
-      const playerData = data.player as unknown as PlayerData;
+      const result = data as { room: RoomData; player: PlayerData };
+      const roomData = result.room;
+      const playerData = result.player;
 
       toast.success(`Вы вошли в комнату #${joinCode}`);
       onJoinRoom(roomData, playerData);
