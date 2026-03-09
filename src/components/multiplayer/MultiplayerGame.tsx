@@ -45,6 +45,14 @@ const MultiplayerGame = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
   const [tab, setTab] = useState<MPTab>('map');
   const [diceRoll, setDiceRoll] = useState<number | null>(null);
   const [diceUsed, setDiceUsed] = useState(myPlayer.has_ended_turn);
+
+  // Reset dice when turn resets (new round)
+  useEffect(() => {
+    if (!myPlayer.has_ended_turn) {
+      setDiceUsed(false);
+      setDiceRoll(null);
+    }
+  }, [myPlayer.has_ended_turn]);
   const [battleData, setBattleData] = useState<any>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
