@@ -129,10 +129,14 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
   const hireAll = async (unitName: string, costPerUnit: number) => {
     const available = getAvailable(unitName);
     if (!profile || available <= 0) return;
+    const unitData = town.units.find(u => u.name === unitName);
+    const unitLeadershipCost = UNIT_LEADERSHIP_COST[unitData?.level || 1] || 5;
+    const leadershipLeft = armyCapacity - getUsedLeadership();
+    const maxByLeadership = Math.floor(leadershipLeft / unitLeadershipCost);
     const maxAffordable = Math.floor(profile.gold / costPerUnit);
-    const amount = Math.min(available, maxAffordable);
+    const amount = Math.min(available, maxAffordable, maxByLeadership);
     if (amount <= 0) {
-      toast.error('Недостаточно золота!');
+      toast.error('Недостаточно золота или лидерства!');
       return;
     }
     await hireUnit(unitName, costPerUnit, amount);
