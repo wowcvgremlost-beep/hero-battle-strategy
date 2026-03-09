@@ -57,6 +57,7 @@ const Game = () => {
     hero_level: number; hero_attack: number; hero_defense: number;
     hero_spellpower: number; gold: number;
   } | null>(null);
+  const [activeDungeon, setActiveDungeon] = useState<Dungeon | null>(null);
 
   // Convert heroSkills array to a map
   const skillsMap: Record<string, number> = {};
