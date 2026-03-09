@@ -314,14 +314,13 @@ const Game = () => {
     }
   };
 
-  const handleBattleVictory = () => {
+  const handleBattleVictory = async () => {
     const tileKey = `${playerRow},${playerCol}`;
-    setDefeatedTiles(prev => {
-      const next = new Set(prev);
-      next.add(tileKey);
-      if (user) localStorage.setItem(`defeated_${user.id}`, JSON.stringify([...next]));
-      return next;
-    });
+    if (user) {
+      await supabase.from('defeated_tiles').insert({
+        tile_key: tileKey, killed_by: user.id, tile_type: 'monster',
+      });
+    }
     updateQuestProgress('kill');
     setBattleData(null);
   };
