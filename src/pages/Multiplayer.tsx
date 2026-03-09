@@ -101,50 +101,31 @@ const Multiplayer = () => {
       const isCreator = currentRoom.creator_id === user.id;
 
       if (isCreator) {
-        // IMPORTANT: fetch remaining players BEFORE deleting our player row,
-        // otherwise we lose room membership and RLS will block reading the room players.
-        const { data: otherPlayers, error: otherPlayersError } = await supabase
+        // Fetch other players BEFORE deleting ourselves
+        const { data: otherPlayers } = await supabase
           .from('multiplayer_players')
           .select('id, user_id, player_number')
           .eq('room_id', currentRoom.id)
           .neq('id', myPlayer.id)
           .order('player_number', { ascending: true });
 
-        if (otherPlayersError) throw otherPlayersError;
-
-        if (!otherPlayers || otherPlayers.length === 0) {
-          // No one else in the room → keep the room so creator can re-join later
-          const { error: leaveError } = await supabase
-            .from('multiplayer_players')
-            .delete()
-            .eq('id', myPlayer.id);
-          if (leaveError) throw leaveError;
-          toast.success('Вы покинули комнату');
-        } else {
-          // Transfer creator role to the lowest player_number so the room can continue
+        if (otherPlayers && otherPlayers.length > 0) {
+          // Transfer creator role
           const nextCreatorId = (otherPlayers[0] as any).user_id as string;
-          const { error: transferError } = await supabase
+          await supabase
             .from('multiplayer_rooms')
             .update({ creator_id: nextCreatorId })
             .eq('id', currentRoom.id);
-          if (transferError) throw transferError;
-
-          const { error: leaveError } = await supabase
-            .from('multiplayer_players')
-            .delete()
-            .eq('id', myPlayer.id);
-          if (leaveError) throw leaveError;
-
-          toast.success('Вы покинули комнату (создатель передан)');
         }
-      } else {
-        const { error: leaveError } = await supabase
-          .from('multiplayer_players')
-          .delete()
-          .eq('id', myPlayer.id);
-        if (leaveError) throw leaveError;
-        toast.success('Вы покинули комнату');
       }
+
+      // Delete our player row — trigger will auto-delete room if empty
+      await supabase
+        .from('multiplayer_players')
+        .delete()
+        .eq('id', myPlayer.id);
+
+      toast.success('Вы покинули комнату');
     } catch (e: any) {
       toast.error(e?.message || 'Ошибка выхода из комнаты');
     } finally {
