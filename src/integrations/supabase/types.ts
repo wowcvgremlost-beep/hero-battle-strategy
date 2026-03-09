@@ -53,6 +53,153 @@ export type Database = {
         }
         Relationships: []
       }
+      guild_members: {
+        Row: {
+          guild_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          guild_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          guild_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_members_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guild_raid_participants: {
+        Row: {
+          damage_dealt: number
+          id: string
+          participated_at: string
+          raid_id: string
+          user_id: string
+        }
+        Insert: {
+          damage_dealt?: number
+          id?: string
+          participated_at?: string
+          raid_id: string
+          user_id: string
+        }
+        Update: {
+          damage_dealt?: number
+          id?: string
+          participated_at?: string
+          raid_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_raid_participants_raid_id_fkey"
+            columns: ["raid_id"]
+            isOneToOne: false
+            referencedRelation: "guild_raids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guild_raids: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          exp_reward: number
+          gold_reward: number
+          guild_id: string
+          id: string
+          raid_boss_power: number
+          raid_name: string
+          status: string
+          total_damage: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          exp_reward?: number
+          gold_reward?: number
+          guild_id: string
+          id?: string
+          raid_boss_power?: number
+          raid_name: string
+          status?: string
+          total_damage?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          exp_reward?: number
+          gold_reward?: number
+          guild_id?: string
+          id?: string
+          raid_boss_power?: number
+          raid_name?: string
+          status?: string
+          total_damage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_raids_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guilds: {
+        Row: {
+          created_at: string
+          description: string | null
+          experience: number
+          icon: string | null
+          id: string
+          leader_id: string
+          level: number
+          max_members: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          experience?: number
+          icon?: string | null
+          id?: string
+          leader_id: string
+          level?: number
+          max_members?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          experience?: number
+          icon?: string | null
+          id?: string
+          leader_id?: string
+          level?: number
+          max_members?: number
+          name?: string
+        }
+        Relationships: []
+      }
       hero_skills: {
         Row: {
           created_at: string
@@ -283,7 +430,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_guild_leader: {
+        Args: { _guild_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       game_town:

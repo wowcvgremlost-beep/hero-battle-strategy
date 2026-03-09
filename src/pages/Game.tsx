@@ -24,13 +24,14 @@ import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
 import DungeonScreen from '@/components/game/DungeonScreen';
 import TradeScreen from '@/components/game/TradeScreen';
+import GuildScreen from '@/components/game/GuildScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'guild';
 
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
   let growth = baseGrowth;
@@ -487,6 +488,7 @@ const Game = () => {
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
             { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
+            { id: 'guild' as GameTab, icon: Shield, label: 'ГИЛЬД' },
             { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
           ]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -590,6 +592,11 @@ const Game = () => {
         {tab === 'trade' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <TradeScreen />
+          </motion.div>
+        )}
+        {tab === 'guild' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <GuildScreen />
           </motion.div>
         )}
       </div>
