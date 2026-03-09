@@ -138,13 +138,20 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
     await hireUnit(unitName, costPerUnit, amount);
   };
 
+  const getUsedLeadership = () => {
+    return army.reduce((sum, a) => {
+      const unitData = town.units.find(u => u.name === a.unit_name);
+      const cost = UNIT_LEADERSHIP_COST[unitData?.level || 1] || 5;
+      return sum + a.count * cost;
+    }, 0);
+  };
+
   const totalPower = army.reduce((sum, unit) => {
     const unitData = town.units.find(u => u.name === unit.unit_name);
     return sum + (unitData ? unit.count * unitData.value : 0);
   }, 0);
 
-  const totalUnits = army.reduce((s, a) => s + a.count, 0);
-  const capacityLeft = armyCapacity - totalUnits;
+  const usedLeadership = getUsedLeadership();
 
   return (
     <div className="space-y-4">
@@ -154,14 +161,10 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
           <p className="font-display text-lg font-bold text-gold">{totalPower.toLocaleString()}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase">Юнитов</p>
-          <p className={`font-display text-lg font-bold ${totalUnits >= armyCapacity ? 'text-crimson' : 'text-foreground'}`}>
-            {totalUnits} / {armyCapacity}
-          </p>
-        </div>
-        <div>
           <p className="text-[10px] text-muted-foreground uppercase">👑 Лидерство</p>
-          <p className="font-display text-lg font-bold text-arcane">{armyCapacity}</p>
+          <p className={`font-display text-lg font-bold ${usedLeadership >= armyCapacity ? 'text-crimson' : 'text-foreground'}`}>
+            {usedLeadership} / {armyCapacity}
+          </p>
         </div>
       </div>
 
