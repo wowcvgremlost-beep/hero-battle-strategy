@@ -437,7 +437,7 @@ const PlayerMarketplace = () => {
                 {availableSpells.length === 0 ? (
                   <p className="text-xs text-muted-foreground">Нет заклинаний</p>
                 ) : availableSpells.map(ps => {
-                  const spell = SPELLS.find(s => s.id === ps.spell_id);
+                  const spell = ALL_SPELLS.find(s => s.id === ps.spell_id);
                   if (!spell) return null;
                   return (
                     <button key={ps.id} onClick={() => setSellItemId(ps.spell_id)}
