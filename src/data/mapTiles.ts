@@ -123,17 +123,18 @@ for (const [r, c, name, rarity] of ARTIFACTS) {
 }
 
 // Monster names by difficulty tier
+// Monster names by difficulty tier — basePower = HP/3 effectively (battle uses power*3 for HP)
 const MONSTERS_BY_TIER: { name: string; basePower: number }[][] = [
-  // Tier 1-2 (easy)
-  [{ name: 'Гоблины', basePower: 30 }, { name: 'Крысы', basePower: 20 }, { name: 'Скелеты', basePower: 40 }],
-  // Tier 3-4
-  [{ name: 'Орки', basePower: 80 }, { name: 'Волки', basePower: 60 }, { name: 'Тролль', basePower: 100 }],
-  // Tier 5-6
-  [{ name: 'Огры', basePower: 150 }, { name: 'Нежить', basePower: 130 }, { name: 'Горгульи', basePower: 170 }],
-  // Tier 7-8
-  [{ name: 'Демоны', basePower: 250 }, { name: 'Циклоп', basePower: 220 }, { name: 'Гидра', basePower: 280 }],
-  // Tier 9-10
-  [{ name: 'Дракон', basePower: 400 }, { name: 'Лич', basePower: 350 }, { name: 'Архидемон', basePower: 500 }],
+  // Tier 1-2 (easy, near spawn — 14 pikemen should win with few losses)
+  [{ name: 'Гоблины', basePower: 15 }, { name: 'Крысы', basePower: 10 }, { name: 'Скелеты', basePower: 20 }],
+  // Tier 3-4 (need ~20-30 lvl1-2 units)
+  [{ name: 'Орки', basePower: 40 }, { name: 'Волки', basePower: 30 }, { name: 'Тролль', basePower: 50 }],
+  // Tier 5-6 (need lvl3-4 units or big army)
+  [{ name: 'Огры', basePower: 80 }, { name: 'Нежить', basePower: 70 }, { name: 'Горгульи', basePower: 90 }],
+  // Tier 7-8 (need strong lvl5-6 army)
+  [{ name: 'Демоны', basePower: 140 }, { name: 'Циклоп', basePower: 120 }, { name: 'Гидра', basePower: 160 }],
+  // Tier 9-10 (endgame, need lvl7 units)
+  [{ name: 'Дракон', basePower: 250 }, { name: 'Лич', basePower: 200 }, { name: 'Архидемон', basePower: 300 }],
 ];
 
 const TREASURE_NAMES = ['Сундук', 'Руины', 'Алтарь', 'Золотой идол', 'Сокровищница', 'Древний свиток'];
