@@ -12,6 +12,7 @@ interface ArmyScreenProps {
   creaturePool: Record<string, number>;
   onHire: (unitName: string, amount?: number) => void;
   hasFort: boolean;
+  armyCapacity: number;
 }
 
 const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) => {
