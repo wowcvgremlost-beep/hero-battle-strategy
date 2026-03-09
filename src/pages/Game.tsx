@@ -379,10 +379,20 @@ const Game = () => {
       skill_level: currentLevel + 1,
     }, { onConflict: 'user_id,skill_id' });
 
-    await updateHeroStats({
+    // Apply wisdom mana bonus if wisdom was chosen
+    const statsUpdate: any = {
       hero_level: newLevel,
       hero_experience: Math.max(0, leftoverExp),
-    });
+    };
+
+    if (skillId === 'wisdom') {
+      // +10 mana per wisdom level
+      const newMana = (profile.mana || 50) + 10;
+      await updateMana(newMana);
+      toast.info(`📖 Мудрость повышена! +10 маны (всего: ${newMana})`);
+    }
+
+    await updateHeroStats(statsUpdate);
 
     await refreshHeroSkills();
     setLevelUpPending(false);
