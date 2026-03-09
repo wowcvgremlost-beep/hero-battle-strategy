@@ -324,9 +324,9 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
               </div>
               <motion.button whileTap={{ scale: 0.95 }}
                 onClick={() => { setJoinCode(room.room_code); setShowJoin(true); setShowCreate(false); }}
-                disabled={room.player_count >= room.max_players}
+                disabled={room.status !== 'waiting' || room.player_count >= room.max_players}
                 className="rounded-lg bg-gradient-crimson px-4 py-2 font-display text-xs font-bold text-accent-foreground disabled:opacity-40">
-                ВОЙТИ
+                {room.status === 'waiting' ? 'ВОЙТИ' : 'ИГРА'}
               </motion.button>
             </div>
           </motion.div>
