@@ -61,6 +61,8 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
     const hero = HEROES.find(h => h.id === heroId);
     if (!hero) return;
     setSelectedHero(heroId);
+    
+    // Update multiplayer player
     await supabase.from('multiplayer_players').update({
       hero_id: heroId,
       hero_attack: hero.baseAttack,
@@ -70,6 +72,15 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
       is_ready: true,
       status: 'playing',
     }).eq('id', myPlayer.id);
+
+    // Also save to profile for future sessions
+    await supabase.from('profiles').update({
+      hero_id: heroId,
+      hero_attack: hero.baseAttack,
+      hero_defense: hero.baseDefense,
+      hero_spellpower: hero.baseSpellpower,
+      hero_knowledge: hero.baseKnowledge,
+    }).eq('user_id', myPlayer.user_id);
 
     // Give starting army
     const town = TOWNS.find(t => t.id === selectedTown);
