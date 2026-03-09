@@ -1,8 +1,11 @@
-export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'artifact' | 'dungeon' | 'empty';
+export type TileCategory = 'safe' | 'combat' | 'random' | 'quest' | 'mystic';
 
 export interface MapTile {
-  id: number;
-  type: TileType;
+  id: number; // encoded as row * 10000 + col
+  row: number;
+  col: number;
+  category: TileCategory;
+  type: string;
   name: string;
   goldReward?: number;
   expReward?: number;
@@ -11,346 +14,313 @@ export interface MapTile {
   npcQuestId?: string;
   artifactRarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   dungeonId?: string;
+  difficulty?: number; // 1-10 for combat tiles
 }
 
-export const MAP_COLS = 60;
-export const MAP_ROWS = 50;
+// Encode/decode position
+export function encodePos(row: number, col: number): number {
+  // Support negative coords: offset by 50000
+  return (row + 50000) * 100000 + (col + 50000);
+}
+export function decodePos(id: number): { row: number; col: number } {
+  const col = (id % 100000) - 50000;
+  const row = Math.floor(id / 100000) - 50000;
+  return { row, col };
+}
 
-// Seeded random for deterministic map
-function seededRandom(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return (s - 1) / 2147483646;
+// Deterministic hash for any coordinate
+function hashCoord(row: number, col: number, seed: number = 42): number {
+  let h = seed;
+  h = ((h << 5) + h + row) | 0;
+  h = ((h << 5) + h + col) | 0;
+  h = ((h * 2654435761) >>> 0);
+  return h;
+}
+
+function hashFloat(row: number, col: number, seed: number = 42): number {
+  return (hashCoord(row, col, seed) % 10000) / 10000;
+}
+
+// Distance from origin for scaling difficulty
+function distFromOrigin(row: number, col: number): number {
+  return Math.sqrt(row * row + col * col);
+}
+
+// Fixed landmarks (cities, dungeons, key NPCs)
+const LANDMARKS: Record<string, Partial<MapTile>> = {};
+
+function addLandmark(row: number, col: number, data: Partial<MapTile>) {
+  LANDMARKS[`${row},${col}`] = data;
+}
+
+// Cities
+const CITIES: [number, number, string][] = [
+  [0, 0, 'Замок Света'],
+  [15, 40, 'Крепость Тьмы'],
+  [-20, 30, 'Торговый пост'],
+  [25, -15, 'Портовый город'],
+  [-10, -25, 'Эльфийская столица'],
+  [30, 20, 'Горная цитадель'],
+  [-30, -10, 'Подземный город'],
+  [10, -35, 'Башня магов'],
+  [-15, 45, 'Древний храм'],
+  [40, -30, 'Северная крепость'],
+  [-40, 20, 'Южный оазис'],
+  [20, 50, 'Восточные врата'],
+];
+for (const [r, c, name] of CITIES) {
+  addLandmark(r, c, { category: 'safe', type: 'city', name, passable: true });
+}
+
+// Dungeons
+const DUNGEONS: [number, number, string, string][] = [
+  [8, 12, '🕳️ Пещеры Гоблинов', 'goblin_caves'],
+  [-12, 35, '⚰️ Склеп Нежити', 'undead_crypt'],
+  [22, -8, '🌋 Логово Дракона', 'dragon_lair'],
+  [-25, -18, '🏚️ Крепость Демонов', 'demon_fortress'],
+  [35, 30, '🌀 Храм Бездны', 'void_temple'],
+];
+for (const [r, c, name, id] of DUNGEONS) {
+  addLandmark(r, c, { category: 'mystic', type: 'dungeon', name, dungeonId: id, passable: true });
+}
+
+// NPCs
+const NPCS: [number, number, string, string][] = [
+  [3, 8, 'Староста', 'kill_goblins'],
+  [-5, 20, 'Купец', 'collect_gold_1'],
+  [10, -10, 'Следопыт', 'explore_tiles'],
+  [-8, -15, 'Архитектор', 'build_first'],
+  [18, 25, 'Генерал', 'hire_army'],
+  [-18, 10, 'Охотник', 'kill_strong'],
+  [28, -20, 'Банкир', 'collect_gold_2'],
+  [-28, 35, 'Мудрец', 'explore_far'],
+  [38, 15, 'Мастер', 'build_many'],
+  [-35, -25, 'Маршал', 'hire_legion'],
+  [5, -30, 'Оракул', 'kill_bosses'],
+  [-15, 50, 'Странник', 'explore_world'],
+];
+for (const [r, c, name, qid] of NPCS) {
+  addLandmark(r, c, { category: 'quest', type: 'npc', name: `NPC: ${name}`, npcQuestId: qid, passable: true });
+}
+
+// Artifact spots
+const ARTIFACTS: [number, number, string, 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'][] = [
+  [4, 6, 'Старый сундук', 'common'],
+  [-7, 18, 'Забытый тайник', 'common'],
+  [12, -5, 'Разрушенная повозка', 'common'],
+  [-20, 40, 'Заброшенный лагерь', 'common'],
+  [6, -22, 'Могила героя', 'uncommon'],
+  [-14, 28, 'Заколдованный грот', 'uncommon'],
+  [24, 8, 'Склеп рыцаря', 'uncommon'],
+  [-9, -30, 'Древний храм', 'rare'],
+  [30, -12, 'Гробница короля', 'rare'],
+  [16, 35, 'Башня архимага', 'epic'],
+  [-32, 15, 'Портал в бездну', 'epic'],
+  [0, 25, 'Алтарь богов', 'legendary'],
+];
+for (const [r, c, name, rarity] of ARTIFACTS) {
+  addLandmark(r, c, { category: 'mystic', type: 'artifact', name, artifactRarity: rarity, passable: true });
+}
+
+// Monster names by difficulty tier
+const MONSTERS_BY_TIER: { name: string; basePower: number }[][] = [
+  // Tier 1-2 (easy)
+  [{ name: 'Гоблины', basePower: 30 }, { name: 'Крысы', basePower: 20 }, { name: 'Скелеты', basePower: 40 }],
+  // Tier 3-4
+  [{ name: 'Орки', basePower: 80 }, { name: 'Волки', basePower: 60 }, { name: 'Тролль', basePower: 100 }],
+  // Tier 5-6
+  [{ name: 'Огры', basePower: 150 }, { name: 'Нежить', basePower: 130 }, { name: 'Горгульи', basePower: 170 }],
+  // Tier 7-8
+  [{ name: 'Демоны', basePower: 250 }, { name: 'Циклоп', basePower: 220 }, { name: 'Гидра', basePower: 280 }],
+  // Tier 9-10
+  [{ name: 'Дракон', basePower: 400 }, { name: 'Лич', basePower: 350 }, { name: 'Архидемон', basePower: 500 }],
+];
+
+const TREASURE_NAMES = ['Сундук', 'Руины', 'Алтарь', 'Золотой идол', 'Сокровищница', 'Древний свиток'];
+const MINE_NAMES = ['Золотая шахта', 'Рудник кристаллов', 'Серебряный рудник', 'Алмазная копь'];
+
+const QUEST_EVENTS = ['Таинственный странник', 'Зов о помощи', 'Загадочное письмо', 'Древний знак'];
+const MYSTIC_EVENTS = ['Магический источник', 'Руны силы', 'Призрачный огонь', 'Портал', 'Зачарованный круг'];
+
+// Generate tile for any coordinate
+export function generateTile(row: number, col: number): MapTile {
+  const key = `${row},${col}`;
+  const id = encodePos(row, col);
+
+  // Check landmarks first
+  if (LANDMARKS[key]) {
+    const lm = LANDMARKS[key];
+    const dist = distFromOrigin(row, col);
+    const difficulty = lm.type === 'dungeon' ? Math.min(10, Math.max(1, Math.floor(dist / 5) + 1)) : undefined;
+    return {
+      id, row, col,
+      category: lm.category || 'safe',
+      type: lm.type || 'safe',
+      name: lm.name || '',
+      passable: lm.passable !== false,
+      goldReward: lm.goldReward,
+      expReward: lm.expReward,
+      monsterPower: lm.monsterPower,
+      npcQuestId: lm.npcQuestId,
+      artifactRarity: lm.artifactRarity,
+      dungeonId: lm.dungeonId,
+      difficulty,
+    };
+  }
+
+  const dist = distFromOrigin(row, col);
+  const h = hashFloat(row, col);
+  const h2 = hashFloat(row, col, 137);
+  const h3 = hashFloat(row, col, 293);
+
+  // Water/mountain (impassable) ~8%
+  if (h < 0.04) {
+    return { id, row, col, category: 'safe', type: 'water', name: 'Вода', passable: false };
+  }
+  if (h < 0.08) {
+    return { id, row, col, category: 'safe', type: 'mountain', name: 'Горы', passable: false };
+  }
+
+  // Combat tiles increase with distance ~15%
+  const combatChance = Math.min(0.25, 0.10 + dist * 0.002);
+  if (h < 0.08 + combatChance) {
+    const difficulty = Math.min(10, Math.max(1, Math.floor(dist / 6) + 1));
+    const tierIdx = Math.min(4, Math.floor((difficulty - 1) / 2));
+    const tier = MONSTERS_BY_TIER[tierIdx];
+    const monster = tier[Math.floor(h2 * tier.length)];
+    const scaledPower = Math.floor(monster.basePower * (1 + dist * 0.03));
+    const goldReward = Math.floor(scaledPower * 2 + h3 * 500);
+    const expReward = Math.floor(scaledPower * 0.8 + h3 * 100);
+    return {
+      id, row, col, category: 'combat', type: 'monster',
+      name: monster.name, passable: true,
+      monsterPower: scaledPower, goldReward, expReward, difficulty,
+    };
+  }
+
+  // Random (treasure/mine) ~8%
+  if (h < 0.08 + combatChance + 0.08) {
+    const isMine = h2 > 0.6;
+    const goldReward = Math.floor(300 + dist * 30 + h3 * 1000);
+    const expReward = Math.floor(20 + dist * 5 + h3 * 100);
+    const names = isMine ? MINE_NAMES : TREASURE_NAMES;
+    const name = names[Math.floor(h2 * names.length)];
+    return {
+      id, row, col, category: 'random', type: isMine ? 'mine' : 'treasure',
+      name, passable: true, goldReward, expReward,
+    };
+  }
+
+  // Quest/NPC ~4%
+  if (h < 0.08 + combatChance + 0.08 + 0.04) {
+    const name = QUEST_EVENTS[Math.floor(h2 * QUEST_EVENTS.length)];
+    return {
+      id, row, col, category: 'quest', type: 'npc',
+      name, passable: true,
+    };
+  }
+
+  // Mystic ~3%
+  if (h < 0.08 + combatChance + 0.08 + 0.04 + 0.03) {
+    const name = MYSTIC_EVENTS[Math.floor(h2 * MYSTIC_EVENTS.length)];
+    // Random artifact rarity based on distance
+    const rarities: ('common' | 'uncommon' | 'rare' | 'epic' | 'legendary')[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+    const maxRarityIdx = Math.min(4, Math.floor(dist / 10));
+    const rarityIdx = Math.min(maxRarityIdx, Math.floor(h3 * (maxRarityIdx + 1)));
+    return {
+      id, row, col, category: 'mystic', type: 'artifact',
+      name, passable: true, artifactRarity: rarities[rarityIdx],
+    };
+  }
+
+  // Safe (grass/road/forest)
+  const subtype = h2 < 0.15 ? 'road' : h2 < 0.35 ? 'forest' : 'grass';
+  const forestNames = ['Лес', 'Густой лес', 'Тёмный лес', 'Чаща'];
+  const name = subtype === 'road' ? 'Дорога' : subtype === 'forest' ? forestNames[Math.floor(h3 * forestNames.length)] : 'Равнина';
+  return {
+    id, row, col, category: 'safe', type: subtype,
+    name, passable: true,
   };
 }
 
-function generateMap(): MapTile[] {
-  const tiles: MapTile[] = [];
-  const total = MAP_COLS * MAP_ROWS;
-  const rand = seededRandom(42);
+// Tile cache for performance
+const tileCache = new Map<string, MapTile>();
 
-  // Pre-place specific landmarks
-  const specific: Record<number, Partial<MapTile>> = {};
-
-  // Cities (scattered)
-  const cities = [
-    [0, 0, 'Замок Света'],
-    [5, 55, 'Крепость Тьмы'],
-    [25, 30, 'Нейтральный город'],
-    [12, 15, 'Торговый пост'],
-    [40, 10, 'Портовый город'],
-    [45, 50, 'Горная цитадель'],
-    [8, 45, 'Эльфийская столица'],
-    [35, 25, 'Подземный город'],
-    [20, 50, 'Башня магов'],
-    [48, 30, 'Древний храм'],
-  ];
-  for (const [r, c, name] of cities) {
-    specific[(r as number) * MAP_COLS + (c as number)] = { type: 'city', name: name as string };
+export function getTileAt(row: number, col: number): MapTile {
+  const key = `${row},${col}`;
+  if (tileCache.has(key)) return tileCache.get(key)!;
+  const tile = generateTile(row, col);
+  tileCache.set(key, tile);
+  // Keep cache bounded
+  if (tileCache.size > 10000) {
+    const firstKey = tileCache.keys().next().value;
+    if (firstKey) tileCache.delete(firstKey);
   }
-
-  // Generate water bodies (lakes, rivers)
-  const waterSeeds = [[10, 25], [20, 40], [30, 15], [40, 45], [15, 50], [35, 5], [25, 10], [45, 25]];
-  for (const [sr, sc] of waterSeeds) {
-    const size = Math.floor(rand() * 8) + 4;
-    let wr = sr, wc = sc;
-    for (let i = 0; i < size; i++) {
-      const id = wr * MAP_COLS + wc;
-      if (wr >= 0 && wr < MAP_ROWS && wc >= 0 && wc < MAP_COLS) {
-        specific[id] = { type: 'water', name: i < 3 ? 'Озеро' : 'Река' };
-      }
-      const dir = rand();
-      if (dir < 0.33) wc += 1;
-      else if (dir < 0.66) wr += 1;
-      else wc -= 1;
-      wr = Math.max(0, Math.min(MAP_ROWS - 1, wr));
-      wc = Math.max(0, Math.min(MAP_COLS - 1, wc));
-    }
-  }
-
-  // Mountain ranges
-  const mountainSeeds = [[5, 30], [15, 10], [30, 45], [40, 20], [25, 55], [10, 5], [45, 40], [35, 35]];
-  for (const [sr, sc] of mountainSeeds) {
-    const size = Math.floor(rand() * 6) + 3;
-    let mr = sr, mc = sc;
-    for (let i = 0; i < size; i++) {
-      const id = mr * MAP_COLS + mc;
-      if (mr >= 0 && mr < MAP_ROWS && mc >= 0 && mc < MAP_COLS && !specific[id]) {
-        specific[id] = { type: 'mountain', name: ['Горы', 'Горный хребет', 'Скалы', 'Утёсы', 'Горный пик'][Math.floor(rand() * 5)] };
-      }
-      mc += rand() < 0.5 ? 1 : -1;
-      mr += rand() < 0.5 ? 1 : 0;
-      mr = Math.max(0, Math.min(MAP_ROWS - 1, mr));
-      mc = Math.max(0, Math.min(MAP_COLS - 1, mc));
-    }
-  }
-
-  // Forests
-  for (let i = 0; i < 120; i++) {
-    const r = Math.floor(rand() * MAP_ROWS);
-    const c = Math.floor(rand() * MAP_COLS);
-    const id = r * MAP_COLS + c;
-    if (!specific[id]) {
-      specific[id] = { type: 'forest', name: ['Лес', 'Густой лес', 'Тёмный лес', 'Чаща', 'Дремучий лес', 'Эльфийский лес'][Math.floor(rand() * 6)] };
-    }
-  }
-
-  // Treasures
-  const treasureNames = [
-    { name: 'Сундук', goldReward: 500 },
-    { name: 'Руины', goldReward: 800, expReward: 30 },
-    { name: 'Алтарь', expReward: 100 },
-    { name: 'Артефакт', goldReward: 1200, expReward: 80 },
-    { name: 'Заброшенный храм', goldReward: 1000, expReward: 50 },
-    { name: 'Древний свиток', expReward: 150 },
-    { name: 'Золотой идол', goldReward: 1500 },
-    { name: 'Магический кристалл', expReward: 200 },
-    { name: 'Сокровищница', goldReward: 2000, expReward: 100 },
-    { name: 'Реликвия', goldReward: 1800, expReward: 120 },
-  ];
-  for (let i = 0; i < 40; i++) {
-    const r = Math.floor(rand() * MAP_ROWS);
-    const c = Math.floor(rand() * MAP_COLS);
-    const id = r * MAP_COLS + c;
-    if (!specific[id]) {
-      const t = treasureNames[Math.floor(rand() * treasureNames.length)];
-      specific[id] = { type: 'treasure', ...t };
-    }
-  }
-
-  // Mines
-  const mineNames = [
-    { name: 'Золотая шахта', goldReward: 1000 },
-    { name: 'Рудник кристаллов', goldReward: 1500 },
-    { name: 'Серебряный рудник', goldReward: 1200 },
-    { name: 'Алмазная копь', goldReward: 2000 },
-    { name: 'Изумрудная шахта', goldReward: 1800 },
-  ];
-  for (let i = 0; i < 20; i++) {
-    const r = Math.floor(rand() * MAP_ROWS);
-    const c = Math.floor(rand() * MAP_COLS);
-    const id = r * MAP_COLS + c;
-    if (!specific[id]) {
-      const m = mineNames[Math.floor(rand() * mineNames.length)];
-      specific[id] = { type: 'mine', ...m };
-    }
-  }
-
-  // Monsters (scaled by distance from center)
-  const monsterNames = [
-    { name: 'Логово гоблинов', monsterPower: 50, goldReward: 300, expReward: 50 },
-    { name: 'Пещера троллей', monsterPower: 100, goldReward: 600, expReward: 100 },
-    { name: 'Логово орков', monsterPower: 150, goldReward: 900, expReward: 150 },
-    { name: 'Башня мага', monsterPower: 200, goldReward: 1500, expReward: 200 },
-    { name: 'Некрополь', monsterPower: 250, goldReward: 1800, expReward: 250 },
-    { name: 'Драконье логово', monsterPower: 300, goldReward: 2000, expReward: 300 },
-    { name: 'Замок демонов', monsterPower: 350, goldReward: 2500, expReward: 350 },
-    { name: 'Цитадель нежити', monsterPower: 400, goldReward: 3000, expReward: 400 },
-    { name: 'Логово гидры', monsterPower: 450, goldReward: 3500, expReward: 450 },
-    { name: 'Чёрная башня', monsterPower: 500, goldReward: 4000, expReward: 500 },
-  ];
-  for (let i = 0; i < 50; i++) {
-    const r = Math.floor(rand() * MAP_ROWS);
-    const c = Math.floor(rand() * MAP_COLS);
-    const id = r * MAP_COLS + c;
-    if (!specific[id]) {
-      const m = monsterNames[Math.floor(rand() * monsterNames.length)];
-      specific[id] = { type: 'monster', ...m };
-    }
-  }
-
-  // Artifacts scattered across the map
-  const artifactSpawns: { pos: number; name: string; rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' }[] = [
-    // Common artifacts
-    { pos: 4 * MAP_COLS + 8, name: 'Старый сундук', rarity: 'common' },
-    { pos: 9 * MAP_COLS + 35, name: 'Забытый тайник', rarity: 'common' },
-    { pos: 16 * MAP_COLS + 12, name: 'Разрушенная повозка', rarity: 'common' },
-    { pos: 22 * MAP_COLS + 52, name: 'Заброшенный лагерь', rarity: 'common' },
-    { pos: 31 * MAP_COLS + 18, name: 'Скрытая пещера', rarity: 'common' },
-    { pos: 38 * MAP_COLS + 42, name: 'Древний колодец', rarity: 'common' },
-    { pos: 44 * MAP_COLS + 8, name: 'Руины сторожки', rarity: 'common' },
-    { pos: 47 * MAP_COLS + 28, name: 'Потерянный мешок', rarity: 'common' },
-    // Uncommon artifacts
-    { pos: 7 * MAP_COLS + 22, name: 'Могила героя', rarity: 'uncommon' },
-    { pos: 13 * MAP_COLS + 45, name: 'Заколдованный грот', rarity: 'uncommon' },
-    { pos: 24 * MAP_COLS + 7, name: 'Склеп рыцаря', rarity: 'uncommon' },
-    { pos: 33 * MAP_COLS + 38, name: 'Тайная комната', rarity: 'uncommon' },
-    { pos: 41 * MAP_COLS + 55, name: 'Логово отшельника', rarity: 'uncommon' },
-    // Rare artifacts
-    { pos: 11 * MAP_COLS + 30, name: 'Древний храм', rarity: 'rare' },
-    { pos: 28 * MAP_COLS + 48, name: 'Гробница короля', rarity: 'rare' },
-    { pos: 37 * MAP_COLS + 15, name: 'Святилище', rarity: 'rare' },
-    // Epic artifacts
-    { pos: 19 * MAP_COLS + 38, name: 'Башня архимага', rarity: 'epic' },
-    { pos: 43 * MAP_COLS + 25, name: 'Портал в бездну', rarity: 'epic' },
-    // Legendary artifact
-    { pos: 25 * MAP_COLS + 30, name: 'Алтарь богов', rarity: 'legendary' },
-  ];
-  for (const spawn of artifactSpawns) {
-    if (!specific[spawn.pos]) {
-      specific[spawn.pos] = { 
-        type: 'artifact' as TileType, 
-        name: spawn.name, 
-        artifactRarity: spawn.rarity 
-      };
-    }
-  }
-
-  // Dungeon entrances
-  const dungeonSpawns: { pos: number; name: string; dungeonId: string }[] = [
-    { pos: 6 * MAP_COLS + 15, name: '🕳️ Пещеры Гоблинов', dungeonId: 'goblin_caves' },
-    { pos: 15 * MAP_COLS + 40, name: '⚰️ Склеп Нежити', dungeonId: 'undead_crypt' },
-    { pos: 30 * MAP_COLS + 20, name: '🌋 Логово Дракона', dungeonId: 'dragon_lair' },
-    { pos: 40 * MAP_COLS + 48, name: '🏚️ Крепость Демонов', dungeonId: 'demon_fortress' },
-    { pos: 25 * MAP_COLS + 30, name: '🌀 Храм Бездны', dungeonId: 'void_temple' },
-  ];
-  for (const spawn of dungeonSpawns) {
-    if (!specific[spawn.pos]) {
-      specific[spawn.pos] = {
-        type: 'dungeon' as TileType,
-        name: spawn.name,
-        dungeonId: spawn.dungeonId,
-      };
-    }
-  }
-
-  // NPC quest givers
-  const npcPositions: [number, string, string][] = [
-    [3 * MAP_COLS + 10, 'Староста', 'kill_goblins'],
-    [7 * MAP_COLS + 40, 'Купец', 'collect_gold_1'],
-    [12 * MAP_COLS + 25, 'Следопыт', 'explore_tiles'],
-    [18 * MAP_COLS + 8, 'Архитектор', 'build_first'],
-    [22 * MAP_COLS + 45, 'Генерал', 'hire_army'],
-    [28 * MAP_COLS + 15, 'Охотник', 'kill_strong'],
-    [33 * MAP_COLS + 50, 'Банкир', 'collect_gold_2'],
-    [38 * MAP_COLS + 33, 'Мудрец', 'explore_far'],
-    [42 * MAP_COLS + 12, 'Мастер', 'build_many'],
-    [46 * MAP_COLS + 38, 'Маршал', 'hire_legion'],
-    [6 * MAP_COLS + 20, 'Оракул', 'kill_bosses'],
-    [14 * MAP_COLS + 48, 'Дракон', 'collect_gold_3'],
-    [26 * MAP_COLS + 5, 'Странник', 'explore_world'],
-    [36 * MAP_COLS + 44, 'Полководец', 'hire_horde'],
-  ];
-  for (const [pos, name, questId] of npcPositions) {
-    if (pos >= 0 && pos < total) {
-      specific[pos] = { type: 'npc' as TileType, name: `NPC: ${name}`, npcQuestId: questId };
-    }
-  }
-
-  // Roads connecting cities
-  for (const [r, c] of cities) {
-    const startR = r as number, startC = c as number;
-    let cr = startR, cc = startC;
-    const targetR = 25, targetC = 30; // toward center
-    const steps = Math.abs(targetR - cr) + Math.abs(targetC - cc);
-    for (let s = 0; s < Math.min(steps, 15); s++) {
-      if (Math.abs(targetR - cr) > Math.abs(targetC - cc)) {
-        cr += targetR > cr ? 1 : -1;
-      } else {
-        cc += targetC > cc ? 1 : -1;
-      }
-      const id = cr * MAP_COLS + cc;
-      if (!specific[id]) {
-        specific[id] = { type: 'road', name: 'Дорога' };
-      }
-    }
-  }
-
-  for (let i = 0; i < total; i++) {
-    if (specific[i]) {
-      const s = specific[i];
-      tiles.push({
-        id: i,
-        type: s.type || 'grass',
-        name: s.name || 'Равнина',
-        goldReward: s.goldReward,
-        expReward: s.expReward,
-        monsterPower: s.monsterPower,
-        passable: s.type !== 'water' && s.type !== 'mountain',
-        npcQuestId: s.npcQuestId,
-        artifactRarity: s.artifactRarity,
-        dungeonId: s.dungeonId,
-      });
-    } else {
-      tiles.push({
-        id: i,
-        type: 'grass',
-        name: 'Равнина',
-        passable: true,
-      });
-    }
-  }
-
-  return tiles;
+  return tile;
 }
 
-export const MAP_TILES: MapTile[] = generateMap();
-
-export function getTileById(id: number): MapTile | undefined {
-  return MAP_TILES[id];
-}
-
-// Get a random passable spawn position
-export function getRandomSpawnPosition(): number {
-  const passable = MAP_TILES.filter(t => t.passable && t.type === 'grass');
-  return passable[Math.floor(Math.random() * passable.length)].id;
+export function getTileById(id: number): MapTile {
+  const { row, col } = decodePos(id);
+  return getTileAt(row, col);
 }
 
 // Triangle grid adjacency
-export function getAdjacentTiles(position: number): number[] {
-  const row = Math.floor(position / MAP_COLS);
-  const col = position % MAP_COLS;
+export function getAdjacentTiles(row: number, col: number): { row: number; col: number }[] {
   const isUp = (row + col) % 2 === 0;
-  const adjacent: number[] = [];
-
-  if (col > 0) adjacent.push(row * MAP_COLS + (col - 1));
-  if (col < MAP_COLS - 1) adjacent.push(row * MAP_COLS + (col + 1));
-
+  const adjacent: { row: number; col: number }[] = [];
+  adjacent.push({ row, col: col - 1 });
+  adjacent.push({ row, col: col + 1 });
   if (isUp) {
-    if (row < MAP_ROWS - 1) adjacent.push((row + 1) * MAP_COLS + col);
+    adjacent.push({ row: row + 1, col });
   } else {
-    if (row > 0) adjacent.push((row - 1) * MAP_COLS + col);
+    adjacent.push({ row: row - 1, col });
   }
-
   return adjacent;
 }
 
-export function getReachableTiles(startPosition: number, steps: number): number[] {
-  const visited = new Set<number>([startPosition]);
-  let frontier = [startPosition];
+export function getReachableTiles(startRow: number, startCol: number, steps: number): { row: number; col: number }[] {
+  const visited = new Set<string>();
+  visited.add(`${startRow},${startCol}`);
+  let frontier = [{ row: startRow, col: startCol }];
 
   for (let i = 0; i < steps; i++) {
-    const nextFrontier: number[] = [];
+    const nextFrontier: { row: number; col: number }[] = [];
     for (const pos of frontier) {
-      const neighbors = getAdjacentTiles(pos);
+      const neighbors = getAdjacentTiles(pos.row, pos.col);
       for (const n of neighbors) {
-        const tile = getTileById(n);
-        if (tile && tile.passable && !visited.has(n)) {
-          visited.add(n);
-          nextFrontier.push(n);
+        const key = `${n.row},${n.col}`;
+        if (!visited.has(key)) {
+          const tile = getTileAt(n.row, n.col);
+          if (tile.passable) {
+            visited.add(key);
+            nextFrontier.push(n);
+          }
         }
       }
     }
     frontier = nextFrontier;
   }
 
-  visited.delete(startPosition);
-  return Array.from(visited);
+  visited.delete(`${startRow},${startCol}`);
+  return Array.from(visited).map(k => {
+    const [r, c] = k.split(',').map(Number);
+    return { row: r, col: c };
+  });
 }
 
-// Get all tiles within fog-of-war reveal radius
-export function getVisibleTiles(position: number, radius: number = 4): Set<number> {
-  const visible = new Set<number>([position]);
-  let frontier = [position];
+export function getVisibleTiles(row: number, col: number, radius: number = 4): Set<string> {
+  const visible = new Set<string>();
+  visible.add(`${row},${col}`);
+  let frontier = [{ row, col }];
 
   for (let i = 0; i < radius; i++) {
-    const nextFrontier: number[] = [];
+    const nextFrontier: { row: number; col: number }[] = [];
     for (const pos of frontier) {
-      const neighbors = getAdjacentTiles(pos);
+      const neighbors = getAdjacentTiles(pos.row, pos.col);
       for (const n of neighbors) {
-        if (!visible.has(n) && n >= 0 && n < MAP_COLS * MAP_ROWS) {
-          visible.add(n);
+        const key = `${n.row},${n.col}`;
+        if (!visible.has(key)) {
+          visible.add(key);
           nextFrontier.push(n);
         }
       }
@@ -360,3 +330,33 @@ export function getVisibleTiles(position: number, radius: number = 4): Set<numbe
 
   return visible;
 }
+
+// Get a random passable spawn position near origin
+export function getRandomSpawnPosition(): { row: number; col: number } {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const r = Math.floor(Math.random() * 10) - 5;
+    const c = Math.floor(Math.random() * 10) - 5;
+    const tile = getTileAt(r, c);
+    if (tile.passable && tile.category === 'safe') return { row: r, col: c };
+  }
+  return { row: 0, col: 1 }; // fallback
+}
+
+// Relocate a defeated monster to a nearby position
+export function relocateMonster(row: number, col: number): { row: number; col: number } | null {
+  // Find a nearby safe tile and swap conceptually
+  for (let r = -3; r <= 3; r++) {
+    for (let c = -3; c <= 3; c++) {
+      if (r === 0 && c === 0) continue;
+      const tile = getTileAt(row + r, col + c);
+      if (tile.category === 'safe' && tile.passable) {
+        return { row: row + r, col: col + c };
+      }
+    }
+  }
+  return null;
+}
+
+// Legacy compat
+export const MAP_COLS = 100;
+export const MAP_ROWS = 100;
