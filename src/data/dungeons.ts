@@ -29,9 +29,9 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 1,
     bossArtifactRarity: 'common',
     floors: [
-      { level: 1, monsterName: 'Гоблин-разведчик', monsterIcon: '👺', monsterPower: 30, goldReward: 200, expReward: 30, isBoss: false },
-      { level: 2, monsterName: 'Гоблины-воины', monsterIcon: '👹', monsterPower: 60, goldReward: 350, expReward: 50, isBoss: false },
-      { level: 3, monsterName: 'Вождь Гоблинов', monsterIcon: '👑', monsterPower: 120, goldReward: 800, expReward: 150, isBoss: true },
+      { level: 1, monsterName: 'Гоблин-разведчик', monsterIcon: '👺', monsterPower: 15, goldReward: 200, expReward: 30, isBoss: false },
+      { level: 2, monsterName: 'Гоблины-воины', monsterIcon: '👹', monsterPower: 30, goldReward: 400, expReward: 60, isBoss: false },
+      { level: 3, monsterName: 'Вождь Гоблинов', monsterIcon: '👑', monsterPower: 60, goldReward: 1000, expReward: 180, isBoss: true },
     ],
   },
   {
@@ -42,10 +42,10 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 3,
     bossArtifactRarity: 'uncommon',
     floors: [
-      { level: 1, monsterName: 'Скелеты', monsterIcon: '💀', monsterPower: 80, goldReward: 400, expReward: 60, isBoss: false },
-      { level: 2, monsterName: 'Зомби-стража', monsterIcon: '🧟', monsterPower: 150, goldReward: 600, expReward: 100, isBoss: false },
-      { level: 3, monsterName: 'Призраки', monsterIcon: '👻', monsterPower: 220, goldReward: 800, expReward: 150, isBoss: false },
-      { level: 4, monsterName: 'Лич-Повелитель', monsterIcon: '🧙', monsterPower: 350, goldReward: 1500, expReward: 300, isBoss: true },
+      { level: 1, monsterName: 'Скелеты', monsterIcon: '💀', monsterPower: 40, goldReward: 400, expReward: 60, isBoss: false },
+      { level: 2, monsterName: 'Зомби-стража', monsterIcon: '🧟', monsterPower: 70, goldReward: 700, expReward: 120, isBoss: false },
+      { level: 3, monsterName: 'Призраки', monsterIcon: '👻', monsterPower: 110, goldReward: 1000, expReward: 200, isBoss: false },
+      { level: 4, monsterName: 'Лич-Повелитель', monsterIcon: '🧙', monsterPower: 180, goldReward: 2000, expReward: 400, isBoss: true },
     ],
   },
   {
@@ -56,10 +56,10 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 5,
     bossArtifactRarity: 'rare',
     floors: [
-      { level: 1, monsterName: 'Огненные элементали', monsterIcon: '🔥', monsterPower: 200, goldReward: 600, expReward: 100, isBoss: false },
-      { level: 2, monsterName: 'Драконлинги', monsterIcon: '🦎', monsterPower: 350, goldReward: 900, expReward: 180, isBoss: false },
-      { level: 3, monsterName: 'Стража дракона', monsterIcon: '⚔️', monsterPower: 500, goldReward: 1200, expReward: 250, isBoss: false },
-      { level: 4, monsterName: 'Красный дракон', monsterIcon: '🐉', monsterPower: 800, goldReward: 3000, expReward: 500, isBoss: true },
+      { level: 1, monsterName: 'Огненные элементали', monsterIcon: '🔥', monsterPower: 100, goldReward: 800, expReward: 150, isBoss: false },
+      { level: 2, monsterName: 'Драконлинги', monsterIcon: '🦎', monsterPower: 170, goldReward: 1200, expReward: 250, isBoss: false },
+      { level: 3, monsterName: 'Стража дракона', monsterIcon: '⚔️', monsterPower: 260, goldReward: 1800, expReward: 350, isBoss: false },
+      { level: 4, monsterName: 'Красный дракон', monsterIcon: '🐉', monsterPower: 400, goldReward: 4000, expReward: 700, isBoss: true },
     ],
   },
   {
@@ -70,11 +70,11 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 8,
     bossArtifactRarity: 'epic',
     floors: [
-      { level: 1, monsterName: 'Бесы', monsterIcon: '😈', monsterPower: 400, goldReward: 1000, expReward: 200, isBoss: false },
-      { level: 2, monsterName: 'Демоны-стражи', monsterIcon: '👿', monsterPower: 600, goldReward: 1500, expReward: 300, isBoss: false },
-      { level: 3, monsterName: 'Суккубы и инкубы', monsterIcon: '🦇', monsterPower: 900, goldReward: 2000, expReward: 400, isBoss: false },
-      { level: 4, monsterName: 'Балрог', monsterIcon: '🔥', monsterPower: 1200, goldReward: 3000, expReward: 600, isBoss: false },
-      { level: 5, monsterName: 'Архидемон', monsterIcon: '💀', monsterPower: 1800, goldReward: 5000, expReward: 1000, isBoss: true },
+      { level: 1, monsterName: 'Бесы', monsterIcon: '😈', monsterPower: 200, goldReward: 1200, expReward: 250, isBoss: false },
+      { level: 2, monsterName: 'Демоны-стражи', monsterIcon: '👿', monsterPower: 320, goldReward: 1800, expReward: 400, isBoss: false },
+      { level: 3, monsterName: 'Суккубы и инкубы', monsterIcon: '🦇', monsterPower: 450, goldReward: 2500, expReward: 500, isBoss: false },
+      { level: 4, monsterName: 'Балрог', monsterIcon: '🔥', monsterPower: 600, goldReward: 3500, expReward: 700, isBoss: false },
+      { level: 5, monsterName: 'Архидемон', monsterIcon: '💀', monsterPower: 900, goldReward: 6000, expReward: 1200, isBoss: true },
     ],
   },
   {
@@ -85,11 +85,11 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 12,
     bossArtifactRarity: 'legendary',
     floors: [
-      { level: 1, monsterName: 'Тени Бездны', monsterIcon: '🌑', monsterPower: 800, goldReward: 2000, expReward: 400, isBoss: false },
-      { level: 2, monsterName: 'Хранители Пустоты', monsterIcon: '🌌', monsterPower: 1200, goldReward: 3000, expReward: 600, isBoss: false },
-      { level: 3, monsterName: 'Воплощения Хаоса', monsterIcon: '💫', monsterPower: 1800, goldReward: 4000, expReward: 800, isBoss: false },
-      { level: 4, monsterName: 'Титан Пустоты', monsterIcon: '🕳️', monsterPower: 2500, goldReward: 6000, expReward: 1200, isBoss: false },
-      { level: 5, monsterName: 'Бог Бездны', monsterIcon: '👁️', monsterPower: 4000, goldReward: 10000, expReward: 2000, isBoss: true },
+      { level: 1, monsterName: 'Тени Бездны', monsterIcon: '🌑', monsterPower: 400, goldReward: 2500, expReward: 500, isBoss: false },
+      { level: 2, monsterName: 'Хранители Пустоты', monsterIcon: '🌌', monsterPower: 600, goldReward: 3500, expReward: 700, isBoss: false },
+      { level: 3, monsterName: 'Воплощения Хаоса', monsterIcon: '💫', monsterPower: 900, goldReward: 5000, expReward: 1000, isBoss: false },
+      { level: 4, monsterName: 'Титан Пустоты', monsterIcon: '🕳️', monsterPower: 1300, goldReward: 7000, expReward: 1500, isBoss: false },
+      { level: 5, monsterName: 'Бог Бездны', monsterIcon: '👁️', monsterPower: 2000, goldReward: 12000, expReward: 2500, isBoss: true },
     ],
   },
 ];

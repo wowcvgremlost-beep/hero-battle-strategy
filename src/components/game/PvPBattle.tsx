@@ -29,25 +29,24 @@ const PvPBattle = ({ target, onClose }: PvPBattleProps) => {
 
   const myTown = TOWNS.find(t => t.id === profile?.town);
 
-  // Calculate my power
+  // Calculate power using % multiplier from hero stats
+  const heroAtkMul = 1 + (profile?.hero_attack || 1) * 0.03;
+  const heroDefReduction = Math.min(0.7, (profile?.hero_defense || 1) * 0.02);
+
   const myArmyPower = army.reduce((total, unit) => {
     const unitData = myTown?.units.find(u => u.name === unit.unit_name);
     if (unitData) {
-      const unitAtk = unitData.attack + (profile?.hero_attack || 1);
-      const unitDef = unitData.defense + (profile?.hero_defense || 1);
-      return total + unit.count * (unitAtk + unitDef + Math.floor(unitData.value / 10));
+      return total + unit.count * (unitData.attack + unitData.defense + Math.floor(unitData.value / 10));
     }
     return total;
   }, 0);
 
-  const myAttack = (profile?.hero_attack || 1) * 5 + (profile?.hero_spellpower || 1) * 3 + myArmyPower;
-  const myDefense = (profile?.hero_defense || 1) * 5 + myArmyPower * 0.5;
-  const myPower = Math.floor(myAttack + myDefense);
+  const myPower = Math.floor((profile?.hero_attack || 1) * 5 + (profile?.hero_defense || 1) * 5 + myArmyPower);
 
-  // Estimate enemy power (we don't know their army, estimate from level)
-  const enemyBasePower = target.hero_attack * 5 + target.hero_spellpower * 3;
-  const enemyDefense = target.hero_defense * 5;
-  const enemyEstimate = Math.floor((enemyBasePower + enemyDefense) * (1 + target.hero_level * 0.3));
+  // Estimate enemy power
+  const enemyEstimate = Math.floor(
+    (target.hero_attack * 5 + target.hero_spellpower * 3 + target.hero_defense * 5) * (1 + target.hero_level * 0.2)
+  );
 
   const startBattle = async () => {
     setBattleState('fighting');
@@ -56,18 +55,22 @@ const PvPBattle = ({ target, onClose }: PvPBattleProps) => {
     logs.push(`⚔️ Атака на ${target.character_name}!`);
     logs.push(`Ваша сила: ${myPower} | Оценка противника: ~${enemyEstimate}`);
 
-    let myHP = myPower;
-    let enemyHP = enemyEstimate;
+    // Simulate with HP pools
+    let myHP = myPower * 3;
+    let enemyHP = enemyEstimate * 3;
     let round = 1;
 
     while (myHP > 0 && enemyHP > 0 && round <= 10) {
-      const myDmg = Math.floor(myAttack * (0.7 + Math.random() * 0.6));
-      enemyHP -= myDmg;
-      logs.push(`Раунд ${round}: Вы наносите ${myDmg} урона.`);
+      // My attack — scaled by hero attack multiplier
+      const myDmg = Math.floor(myArmyPower * 0.15 * heroAtkMul * (0.85 + Math.random() * 0.3));
+      enemyHP -= Math.max(1, myDmg);
+      logs.push(`Раунд ${round}: Вы наносите ${Math.max(1, myDmg)} урона.`);
 
       if (enemyHP <= 0) break;
 
-      const eDmg = Math.max(1, Math.floor(enemyBasePower * (0.7 + Math.random() * 0.6) - myDefense * 0.1));
+      // Enemy attack — reduced by hero defense
+      const rawEDmg = Math.floor(enemyEstimate * 0.15 * (0.85 + Math.random() * 0.3));
+      const eDmg = Math.max(1, Math.floor(rawEDmg * (1 - heroDefReduction)));
       myHP -= eDmg;
       logs.push(`${target.character_name} наносит ${eDmg} урона.`);
       round++;

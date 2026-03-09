@@ -55,10 +55,10 @@ export function getNpcTilePositions(): Map<number, QuestDef> {
   return map;
 }
 
-// Get monster power scaled by week
+// Get monster power scaled by week — gentler curve
 export function getScaledMonsterPower(basePower: number, weekNumber: number): number {
-  // +15% per week, starting from week 2
-  const scaling = 1 + Math.max(0, weekNumber - 1) * 0.15;
+  // +10% per week, starting from week 2
+  const scaling = 1 + Math.max(0, weekNumber - 1) * 0.10;
   return Math.floor(basePower * scaling);
 }
 
