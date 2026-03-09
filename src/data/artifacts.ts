@@ -78,7 +78,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'helmet',
     rarity: 'legendary',
     icon: '✨',
-    bonuses: { attack: 3, defense: 2, spellpower: 2, knowledge: 2, leadership: 10 },
+    bonuses: { attack: 3, defense: 2, spellpower: 2, knowledge: 2, leadership: 80 },
   },
 
   // Armor
@@ -116,7 +116,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'epic',
     icon: '🏛️',
-    bonuses: { defense: 4, attack: 2, leadership: 5 },
+    bonuses: { defense: 4, attack: 2, leadership: 40 },
   },
   {
     id: 'armor_invincible',
@@ -125,7 +125,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'legendary',
     icon: '⚜️',
-    bonuses: { defense: 6, attack: 2, spellpower: 1, leadership: 8 },
+    bonuses: { defense: 6, attack: 2, spellpower: 1, leadership: 60 },
   },
 
   // Weapons
@@ -219,7 +219,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'accessory',
     rarity: 'legendary',
     icon: '🏆',
-    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4, leadership: 15 },
+    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4, leadership: 100 },
   },
   // Leadership-focused artifacts
   {
@@ -229,7 +229,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'accessory',
     rarity: 'uncommon',
     icon: '🚩',
-    bonuses: { leadership: 10 },
+    bonuses: { leadership: 50 },
   },
   {
     id: 'helm_warlord',
@@ -238,7 +238,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'helmet',
     rarity: 'rare',
     icon: '🎖️',
-    bonuses: { attack: 1, leadership: 12 },
+    bonuses: { attack: 1, leadership: 70 },
   },
 ];
 

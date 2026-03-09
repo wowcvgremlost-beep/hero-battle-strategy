@@ -60,9 +60,9 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
           hp: a.count * unitData.health,
           maxHpPerUnit: unitData.health,
           level: unitData.level,
-          attack: unitData.attack,
-          defense: unitData.defense,
-          damage: avgDmg,
+          attack: unitData.attack + heroAttack,
+          defense: unitData.defense + heroDefense,
+          damage: avgDmg + heroAttack * 0.5,
         };
       })
       .filter(Boolean) as ArmyStack[];
