@@ -20,7 +20,6 @@ import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
-import DungeonScreen from '@/components/game/DungeonScreen';
 import TradeScreen from '@/components/game/TradeScreen';
 import PlayerMarketplace from '@/components/game/PlayerMarketplace';
 import GuildScreen from '@/components/game/GuildScreen';
