@@ -250,6 +250,7 @@ function generateMap(): MapTile[] {
         monsterPower: s.monsterPower,
         passable: s.type !== 'water' && s.type !== 'mountain',
         npcQuestId: s.npcQuestId,
+        artifactRarity: s.artifactRarity,
       });
     } else {
       tiles.push({
