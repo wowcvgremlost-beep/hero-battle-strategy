@@ -544,7 +544,7 @@ const Game = () => {
 
         {tab === 'army' && town && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <ArmyScreen townId={town.id as TownId} creaturePool={creaturePool} onHire={decrementPool} hasFort={hasFort} />
+            <ArmyScreen townId={town.id as TownId} creaturePool={creaturePool} onHire={decrementPool} hasFort={hasFort} armyCapacity={totalArmyCapacity} />
           </motion.div>
         )}
         {tab === 'buildings' && town && (
