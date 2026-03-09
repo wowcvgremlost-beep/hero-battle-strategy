@@ -104,6 +104,33 @@ export type Database = {
         }
         Relationships: []
       }
+      player_artifacts: {
+        Row: {
+          artifact_id: string
+          created_at: string
+          id: string
+          is_equipped: boolean
+          slot: string
+          user_id: string
+        }
+        Insert: {
+          artifact_id: string
+          created_at?: string
+          id?: string
+          is_equipped?: boolean
+          slot: string
+          user_id: string
+        }
+        Update: {
+          artifact_id?: string
+          created_at?: string
+          id?: string
+          is_equipped?: boolean
+          slot?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_buildings: {
         Row: {
           building_id: string
