@@ -6,7 +6,8 @@ import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText } from 'lucide-react';
+import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -19,13 +20,14 @@ import LevelUpModal from '@/components/game/LevelUpModal';
 import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
+import EquipmentScreen from '@/components/game/EquipmentScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment';
 
 // Calculate weekly growth for a unit based on buildings
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
