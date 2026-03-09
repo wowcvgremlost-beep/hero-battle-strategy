@@ -18,6 +18,8 @@ interface Profile {
   hero_level: number;
   hero_experience: number;
   map_position: number;
+  map_row: number;
+  map_col: number;
   day: number;
   built_this_turn: boolean;
 }
@@ -61,7 +63,7 @@ interface AuthContextType {
   refreshHeroSkills: () => Promise<void>;
   updateGold: (newGold: number) => Promise<void>;
   updateMana: (newMana: number) => Promise<void>;
-  updateMapPosition: (newPosition: number) => Promise<void>;
+  updateMapPosition: (row: number, col: number) => Promise<void>;
   updateDay: (newDay: number) => Promise<void>;
   updateHeroStats: (stats: Partial<Pick<Profile, 'hero_attack' | 'hero_defense' | 'hero_spellpower' | 'hero_knowledge' | 'hero_level' | 'hero_experience'>>) => Promise<void>;
   setBuiltThisTurn: (val: boolean) => Promise<void>;
@@ -95,34 +97,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchBuildings = async (userId: string) => {
-    const { data } = await supabase
-      .from('player_buildings')
-      .select('id, building_id')
-      .eq('user_id', userId);
+    const { data } = await supabase.from('player_buildings').select('id, building_id').eq('user_id', userId);
     setBuildings((data as PlayerBuilding[]) || []);
   };
 
   const fetchArmy = async (userId: string) => {
-    const { data } = await supabase
-      .from('player_army')
-      .select('id, unit_name, count')
-      .eq('user_id', userId);
+    const { data } = await supabase.from('player_army').select('id, unit_name, count').eq('user_id', userId);
     setArmy((data as PlayerArmy[]) || []);
   };
 
   const fetchSpells = async (userId: string) => {
-    const { data } = await supabase
-      .from('player_spells')
-      .select('id, spell_id')
-      .eq('user_id', userId);
+    const { data } = await supabase.from('player_spells').select('id, spell_id').eq('user_id', userId);
     setSpells((data as PlayerSpell[]) || []);
   };
 
   const fetchHeroSkills = async (userId: string) => {
-    const { data } = await supabase
-      .from('hero_skills')
-      .select('id, skill_id, skill_level')
-      .eq('user_id', userId);
+    const { data } = await supabase.from('hero_skills').select('id, skill_id, skill_level').eq('user_id', userId);
     setHeroSkills((data as HeroSkill[]) || []);
   };
 
@@ -144,9 +134,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await refreshProfile();
   };
 
-  const updateMapPosition = async (newPosition: number) => {
+  const updateMapPosition = async (row: number, col: number) => {
     if (!user) return;
-    await supabase.from('profiles').update({ map_position: newPosition }).eq('user_id', user.id);
+    await supabase.from('profiles').update({ map_row: row, map_col: col }).eq('user_id', user.id);
     await refreshProfile();
   };
 

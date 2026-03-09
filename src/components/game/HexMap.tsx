@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { MAP_TILES, MAP_COLS, MAP_ROWS, getReachableTiles, getVisibleTiles, type MapTile } from '@/data/mapTiles';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { getTileAt, getReachableTiles, getVisibleTiles, encodePos, type MapTile, type TileCategory } from '@/data/mapTiles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,283 +12,294 @@ interface OtherPlayer {
   hero_defense: number;
   hero_spellpower: number;
   gold: number;
-  map_position: number;
+  map_row: number;
+  map_col: number;
 }
 
 interface HexMapProps {
   diceRoll: number | null;
   onTileSelect: (tile: MapTile) => void;
-  onMove: (tileId: number) => void;
-  revealedTiles: Set<number>;
+  onMove: (row: number, col: number) => void;
+  revealedTiles: Set<string>;
   onAttackPlayer?: (player: OtherPlayer) => void;
+  playerRow: number;
+  playerCol: number;
+  defeatedTiles: Set<string>;
 }
 
-const TRI_SIZE = 22;
+const TRI_SIZE = 28;
 const TRI_H = TRI_SIZE * Math.sqrt(3) / 2;
+const VIEW_RADIUS = 12; // tiles around player to render
 
-const TILE_FILL: Record<string, string> = {
-  city: 'hsl(45 80% 55%)',
-  road: 'hsl(30 15% 50%)',
-  grass: 'hsl(120 25% 85%)',
-  forest: 'hsl(140 40% 42%)',
-  mountain: 'hsl(30 10% 55%)',
-  water: 'hsl(210 60% 65%)',
-  treasure: 'hsl(45 90% 60%)',
-  mine: 'hsl(280 50% 55%)',
-  monster: 'hsl(0 60% 50%)',
-  npc: 'hsl(180 60% 50%)',
-  artifact: 'hsl(270 70% 60%)',
-  dungeon: 'hsl(20 80% 35%)',
-  empty: 'hsl(0 0% 90%)',
+const CATEGORY_FILL: Record<TileCategory, string> = {
+  safe:   'hsl(140 45% 55%)',
+  combat: 'hsl(0 65% 50%)',
+  random: 'hsl(45 80% 55%)',
+  quest:  'hsl(210 65% 55%)',
+  mystic: 'hsl(280 60% 55%)',
 };
 
-const TILE_STROKE: Record<string, string> = {
-  city: 'hsl(45 70% 40%)',
-  road: 'hsl(30 10% 38%)',
-  grass: 'hsl(200 40% 72%)',
-  forest: 'hsl(140 35% 30%)',
+const CATEGORY_FILL_DARK: Record<TileCategory, string> = {
+  safe:   'hsl(140 30% 30%)',
+  combat: 'hsl(0 40% 28%)',
+  random: 'hsl(45 50% 30%)',
+  quest:  'hsl(210 40% 30%)',
+  mystic: 'hsl(280 35% 30%)',
+};
+
+const CATEGORY_STROKE: Record<TileCategory, string> = {
+  safe:   'hsl(140 35% 40%)',
+  combat: 'hsl(0 55% 35%)',
+  random: 'hsl(45 70% 40%)',
+  quest:  'hsl(210 55% 40%)',
+  mystic: 'hsl(280 50% 40%)',
+};
+
+const IMPASSABLE_FILL: Record<string, string> = {
+  water: 'hsl(210 50% 35%)',
   mountain: 'hsl(30 10% 40%)',
-  water: 'hsl(210 50% 50%)',
-  treasure: 'hsl(45 80% 45%)',
-  mine: 'hsl(280 40% 40%)',
-  monster: 'hsl(0 50% 35%)',
-  npc: 'hsl(180 50% 35%)',
-  artifact: 'hsl(270 60% 45%)',
-  dungeon: 'hsl(20 70% 25%)',
-  empty: 'hsl(0 0% 75%)',
 };
 
 const TILE_ICONS: Record<string, string> = {
-  city: '🏰',
-  road: '',
-  grass: '',
-  forest: '🌲',
-  mountain: '⛰️',
-  water: '🌊',
-  treasure: '💰',
-  mine: '⛏️',
-  monster: '💀',
-  npc: '❓',
-  artifact: '🎁',
-  dungeon: '🚪',
-  empty: '',
+  city: '🏰', forest: '🌲', water: '🌊', mountain: '⛰️',
+  treasure: '💰', mine: '⛏️', monster: '💀', npc: '❓',
+  artifact: '🎁', dungeon: '🚪',
 };
 
-function trianglePoints(row: number, col: number): string {
+function trianglePoints(row: number, col: number, offsetX: number, offsetY: number): string {
   const isUp = (row + col) % 2 === 0;
-  const x = col * TRI_SIZE / 2;
-  const y = row * TRI_H;
+  const x = col * TRI_SIZE / 2 + offsetX;
+  const y = row * TRI_H + offsetY;
   if (isUp) {
     return `${x},${y + TRI_H} ${x + TRI_SIZE / 2},${y} ${x + TRI_SIZE},${y + TRI_H}`;
-  } else {
-    return `${x},${y} ${x + TRI_SIZE / 2},${y + TRI_H} ${x + TRI_SIZE},${y}`;
   }
+  return `${x},${y} ${x + TRI_SIZE / 2},${y + TRI_H} ${x + TRI_SIZE},${y}`;
 }
 
-function triangleCenter(row: number, col: number): { x: number; y: number } {
+function triangleCenter(row: number, col: number, offsetX: number, offsetY: number): { x: number; y: number } {
   const isUp = (row + col) % 2 === 0;
-  const x = col * TRI_SIZE / 2 + TRI_SIZE / 2;
-  const y = row * TRI_H + (isUp ? TRI_H * 2 / 3 : TRI_H / 3);
+  const x = col * TRI_SIZE / 2 + TRI_SIZE / 2 + offsetX;
+  const y = row * TRI_H + (isUp ? TRI_H * 2 / 3 : TRI_H / 3) + offsetY;
   return { x, y };
 }
 
 const FOG_FILL = 'hsl(220 15% 12%)';
 
-const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles, onAttackPlayer }: HexMapProps) => {
-  const { profile, user } = useAuth();
-  const currentPosition = profile?.map_position ?? 0;
-  const [selectedTile, setSelectedTile] = useState<number | null>(null);
+const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles, onAttackPlayer, playerRow, playerCol, defeatedTiles }: HexMapProps) => {
+  const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [otherPlayers, setOtherPlayers] = useState<OtherPlayer[]>([]);
 
-  const reachableTiles = diceRoll ? getReachableTiles(currentPosition, diceRoll) : [];
-  const currentlyVisible = useMemo(() => getVisibleTiles(currentPosition, 4), [currentPosition]);
+  const reachable = useMemo(() => {
+    if (!diceRoll) return new Set<string>();
+    const tiles = getReachableTiles(playerRow, playerCol, diceRoll);
+    return new Set(tiles.map(t => `${t.row},${t.col}`));
+  }, [diceRoll, playerRow, playerCol]);
 
-  // Fetch other players and subscribe to realtime
+  const currentlyVisible = useMemo(() => getVisibleTiles(playerRow, playerCol, 4), [playerRow, playerCol]);
+
+  // Generate visible tile coords
+  const visibleCoords = useMemo(() => {
+    const coords: { row: number; col: number }[] = [];
+    for (let dr = -VIEW_RADIUS; dr <= VIEW_RADIUS; dr++) {
+      for (let dc = -VIEW_RADIUS * 2; dc <= VIEW_RADIUS * 2; dc++) {
+        coords.push({ row: playerRow + dr, col: playerCol + dc });
+      }
+    }
+    return coords;
+  }, [playerRow, playerCol]);
+
+  // Fetch other players
   useEffect(() => {
     if (!user) return;
-
     const fetchPlayers = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('user_id, character_name, town, hero_level, hero_attack, hero_defense, hero_spellpower, gold, map_position')
+        .select('user_id, character_name, town, hero_level, hero_attack, hero_defense, hero_spellpower, gold, map_row, map_col')
         .eq('character_created', true)
         .neq('user_id', user.id);
-      setOtherPlayers((data as OtherPlayer[]) || []);
+      if (data) {
+        setOtherPlayers(data as any[]);
+      }
     };
-
     fetchPlayers();
-
-    const channel = supabase
-      .channel('players-map')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'profiles',
-      }, () => {
-        fetchPlayers();
-      })
+    const channel = supabase.channel('players-map')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchPlayers())
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Build map of tile -> player for quick lookup
   const playersByTile = useMemo(() => {
-    const map = new Map<number, OtherPlayer[]>();
+    const map = new Map<string, OtherPlayer[]>();
     otherPlayers.forEach(p => {
-      if (!map.has(p.map_position)) map.set(p.map_position, []);
-      map.get(p.map_position)!.push(p);
+      const key = `${p.map_row},${p.map_col}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
     });
     return map;
   }, [otherPlayers]);
 
+  // Auto-scroll to center
   useEffect(() => {
     if (containerRef.current) {
-      const row = Math.floor(currentPosition / MAP_COLS);
-      const col = currentPosition % MAP_COLS;
-      const { x, y } = triangleCenter(row, col);
+      const svgW = (VIEW_RADIUS * 4 + 1) * TRI_SIZE / 2 + TRI_SIZE;
+      const svgH = (VIEW_RADIUS * 2 + 1) * TRI_H + TRI_H;
       containerRef.current.scrollTo({
-        left: x - containerRef.current.clientWidth / 2,
-        top: y - containerRef.current.clientHeight / 2,
+        left: svgW / 2 - containerRef.current.clientWidth / 2,
+        top: svgH / 2 - containerRef.current.clientHeight / 2,
         behavior: 'smooth',
       });
     }
-  }, [currentPosition]);
+  }, [playerRow, playerCol]);
 
-  const handleTileClick = (tile: MapTile) => {
+  const handleTileClick = useCallback((tile: MapTile) => {
     if (!tile.passable) return;
-    if (!revealedTiles.has(tile.id)) return;
+    const key = `${tile.row},${tile.col}`;
+    if (!revealedTiles.has(key)) return;
 
-    // Check if there's a player on this tile and it's reachable
-    const playersOnTile = playersByTile.get(tile.id);
-    if (playersOnTile && playersOnTile.length > 0 && reachableTiles.includes(tile.id) && onAttackPlayer) {
+    const playersOnTile = playersByTile.get(key);
+    if (playersOnTile && playersOnTile.length > 0 && reachable.has(key) && onAttackPlayer) {
       onAttackPlayer(playersOnTile[0]);
       return;
     }
 
-    setSelectedTile(tile.id);
     onTileSelect(tile);
-    if (diceRoll && reachableTiles.includes(tile.id)) {
-      onMove(tile.id);
+    if (diceRoll && reachable.has(key)) {
+      onMove(tile.row, tile.col);
     }
-  };
+  }, [diceRoll, reachable, revealedTiles, playersByTile, onAttackPlayer, onTileSelect, onMove]);
 
-  const svgW = MAP_COLS * TRI_SIZE / 2 + TRI_SIZE / 2 + 4;
-  const svgH = MAP_ROWS * TRI_H + TRI_H + 4;
+  // Rendering offset so player-relative coords map to SVG space
+  const minRow = playerRow - VIEW_RADIUS;
+  const minCol = playerCol - VIEW_RADIUS * 2;
+  const offsetX = -minCol * TRI_SIZE / 2;
+  const offsetY = -minRow * TRI_H;
+
+  const svgW = (VIEW_RADIUS * 4 + 2) * TRI_SIZE / 2 + TRI_SIZE;
+  const svgH = (VIEW_RADIUS * 2 + 2) * TRI_H + TRI_H;
 
   return (
     <div
       ref={containerRef}
-      className="overflow-auto rounded-xl border border-border bg-card/50"
+      className="overflow-auto rounded-xl border border-border bg-card/80"
       style={{ maxHeight: '55vh' }}
     >
-      <svg
-        width={svgW}
-        height={svgH}
-        viewBox={`-2 -2 ${svgW} ${svgH}`}
-        className="block"
-      >
-        {MAP_TILES.map((tile) => {
-          const row = Math.floor(tile.id / MAP_COLS);
-          const col = tile.id % MAP_COLS;
-          const points = trianglePoints(row, col);
-          const { x, y } = triangleCenter(row, col);
-          const isRevealed = revealedTiles.has(tile.id);
-          const isVisible = currentlyVisible.has(tile.id);
-          const isCurrentPos = tile.id === currentPosition;
-          const isReachable = reachableTiles.includes(tile.id);
-          const isSelected = selectedTile === tile.id;
-          const playersHere = playersByTile.get(tile.id);
+      <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} className="block">
+        {visibleCoords.map(({ row, col }) => {
+          const key = `${row},${col}`;
+          const tile = getTileAt(row, col);
+          const points = trianglePoints(row, col, offsetX, offsetY);
+          const { x, y } = triangleCenter(row, col, offsetX, offsetY);
+          const isRevealed = revealedTiles.has(key);
+          const isVisible = currentlyVisible.has(key);
+          const isCurrentPos = row === playerRow && col === playerCol;
+          const isReachable = reachable.has(key);
+          const playersHere = playersByTile.get(key);
           const hasEnemy = playersHere && playersHere.length > 0 && isVisible;
+          const isDefeated = defeatedTiles.has(key);
 
           if (!isRevealed) {
             return (
-              <polygon
-                key={tile.id}
-                points={points}
-                fill={FOG_FILL}
-                stroke="hsl(220 10% 18%)"
-                strokeWidth={0.5}
-                opacity={1}
-              />
+              <polygon key={key} points={points} fill={FOG_FILL} stroke="hsl(220 10% 18%)" strokeWidth={0.5} />
             );
           }
 
-          let fill = TILE_FILL[tile.type] || TILE_FILL.empty;
-          let stroke = TILE_STROKE[tile.type] || TILE_STROKE.empty;
+          // Determine fill color
+          let fill: string;
+          if (!tile.passable) {
+            fill = IMPASSABLE_FILL[tile.type] || 'hsl(0 0% 30%)';
+          } else if (isDefeated && tile.category === 'combat') {
+            fill = CATEGORY_FILL.safe; // defeated monsters show as safe
+          } else {
+            fill = isVisible ? CATEGORY_FILL[tile.category] : CATEGORY_FILL_DARK[tile.category];
+          }
+
+          let stroke = CATEGORY_STROKE[tile.category] || 'hsl(0 0% 40%)';
           let strokeWidth = 0.8;
           let tileOpacity = isVisible ? 1 : 0.5;
 
-          if (isReachable) {
-            stroke = 'hsl(140 70% 50%)';
+          if (isReachable && tile.passable) {
+            stroke = 'hsl(0 0% 100%)';
             strokeWidth = 2;
           }
           if (hasEnemy && isReachable) {
-            stroke = 'hsl(0 80% 55%)';
+            stroke = 'hsl(0 80% 70%)';
             strokeWidth = 2.5;
-          }
-          if (isSelected) {
-            stroke = 'hsl(280 70% 60%)';
-            strokeWidth = 2;
           }
           if (isCurrentPos) {
-            stroke = 'hsl(45 90% 50%)';
-            strokeWidth = 2.5;
+            stroke = 'hsl(45 90% 60%)';
+            strokeWidth = 3;
           }
           if (!tile.passable) {
-            tileOpacity = isVisible ? 0.7 : 0.35;
+            tileOpacity = isVisible ? 0.6 : 0.3;
           }
 
-          const icon = TILE_ICONS[tile.type];
+          const icon = TILE_ICONS[tile.type] || '';
+          const showDifficulty = tile.difficulty && tile.category === 'combat' && !isDefeated && isVisible;
 
           return (
             <g
-              key={tile.id}
+              key={key}
               onClick={() => handleTileClick(tile)}
               style={{ cursor: tile.passable && isRevealed ? 'pointer' : 'default' }}
             >
-              <polygon
-                points={points}
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                opacity={tileOpacity}
-              />
-              {isReachable && (
-                <polygon
-                  points={points}
-                  fill="hsl(140 70% 50%)"
-                  opacity={0.18}
-                  stroke="none"
-                />
+              <polygon points={points} fill={fill} stroke={stroke} strokeWidth={strokeWidth} opacity={tileOpacity} />
+              {isReachable && tile.passable && (
+                <polygon points={points} fill="hsl(0 0% 100%)" opacity={0.15} stroke="none" />
               )}
               {isCurrentPos && (
-                <circle cx={x} cy={y} r={4} fill="hsl(45 90% 50%)" stroke="hsl(0 0% 10%)" strokeWidth={1.2} />
+                <>
+                  <circle cx={x} cy={y} r={5} fill="hsl(45 90% 55%)" stroke="hsl(0 0% 10%)" strokeWidth={1.5} />
+                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fontSize={6} fill="hsl(0 0% 10%)" fontWeight="bold">⚑</text>
+                </>
               )}
               {hasEnemy && !isCurrentPos && (
                 <>
                   <circle cx={x} cy={y} r={4} fill="hsl(0 70% 50%)" stroke="hsl(0 0% 100%)" strokeWidth={0.8} />
-                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fontSize={5} fill="white" fontWeight="bold">
-                    ⚔
-                  </text>
+                  <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="central" fontSize={5} fill="white" fontWeight="bold">⚔</text>
                 </>
               )}
-              {icon && !isCurrentPos && !hasEnemy && isVisible && (
-                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={8}>
+              {showDifficulty && (
+                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={8} fill="hsl(0 0% 100%)" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                  {tile.difficulty}
+                </text>
+              )}
+              {icon && !isCurrentPos && !hasEnemy && !showDifficulty && isVisible && !isDefeated && (
+                <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={9}>
                   {icon}
                 </text>
               )}
               <title>
                 {tile.name}
+                {tile.difficulty ? ` [Сложность: ${tile.difficulty}]` : ''}
                 {tile.monsterPower ? ` (⚔${tile.monsterPower})` : ''}
                 {tile.goldReward ? ` (💰${tile.goldReward})` : ''}
                 {hasEnemy ? ` 👤${playersHere![0].character_name} Ур.${playersHere![0].hero_level}` : ''}
+                {isDefeated ? ' ✓ Побеждено' : ''}
               </title>
             </g>
           );
         })}
       </svg>
+
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-3 py-2 px-3 border-t border-border bg-card/50">
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: CATEGORY_FILL.safe }} /> Безопасно
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: CATEGORY_FILL.combat }} /> Бой
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: CATEGORY_FILL.random }} /> Случайность
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: CATEGORY_FILL.quest }} /> Квест
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="w-3 h-3 rounded-sm" style={{ background: CATEGORY_FILL.mystic }} /> Мистика
+        </span>
+      </div>
     </div>
   );
 };
