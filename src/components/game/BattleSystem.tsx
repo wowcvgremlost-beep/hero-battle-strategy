@@ -309,15 +309,14 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
         )}
 
         {battleState === 'ready' && (
-          <>
-            <motion.button whileTap={{ scale: 0.97 }} onClick={() => {
-              if (!hasArmy) {
-                toast.error('Наймите войска в армии перед боем');
-                return;
-              }
-              void startBattle();
-            }}
-              className="w-full rounded-xl bg-gradient-crimson p-4 shadow-crimson font-display font-bold text-accent-foreground">
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => {
+            if (!hasArmy) {
+              toast.error('Наймите войска в армии перед боем');
+              return;
+            }
+            void startBattle();
+          }}
+            className="w-full rounded-xl bg-gradient-crimson p-4 shadow-crimson font-display font-bold text-accent-foreground">
             ⚔️ НАЧАТЬ БОЙ
           </motion.button>
         )}
