@@ -116,7 +116,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'epic',
     icon: '🏛️',
-    bonuses: { defense: 4, attack: 2, leadership: 5 },
+    bonuses: { defense: 4, attack: 2, leadership: 40 },
   },
   {
     id: 'armor_invincible',
