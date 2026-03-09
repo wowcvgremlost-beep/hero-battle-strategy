@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import Auth from './Auth';
 import CharacterCreate from './CharacterCreate';
-import Game from './Game';
+import MainMenu from './MainMenu';
 
 const Index = () => {
   const { user, profile, loading } = useAuth();
@@ -14,14 +14,10 @@ const Index = () => {
     );
   }
 
-  // Not logged in
   if (!user) return <Auth />;
-
-  // Logged in but no character
   if (!profile?.character_created) return <CharacterCreate />;
 
-  // Has character
-  return <Game />;
+  return <MainMenu />;
 };
 
 export default Index;
