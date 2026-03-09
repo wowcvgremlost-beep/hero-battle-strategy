@@ -450,6 +450,9 @@ const Game = () => {
               <Sparkles className="h-3 w-3 text-arcane" />
               <span className="text-xs font-bold text-arcane">{profile?.mana || 0}</span>
             </div>
+            <button onClick={() => navigate('/multiplayer')} className="text-muted-foreground hover:text-gold transition-colors" title="Мультиплеер">
+              <Users className="h-4 w-4" />
+            </button>
             <button onClick={() => setShowDeleteConfirm(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить персонажа">
               <Trash2 className="h-4 w-4" />
             </button>
