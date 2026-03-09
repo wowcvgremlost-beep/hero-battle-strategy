@@ -102,12 +102,42 @@ const Game = () => {
     return new Set<string>();
   });
 
-  // Defeated tiles - monsters that were beaten
-  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(() => {
-    if (!user) return new Set<string>();
-    try { const s = localStorage.getItem(`defeated_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
-    return new Set<string>();
-  });
+  // Defeated tiles - shared across all players, respawn daily at 00:00 UTC
+  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(new Set<string>());
+
+  // Load defeated tiles from DB (only today's kills count - daily respawn)
+  useEffect(() => {
+    if (!user) return;
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const fetchDefeated = async () => {
+      const { data } = await supabase
+        .from('defeated_tiles')
+        .select('tile_key')
+        .gte('killed_at', todayStart.toISOString());
+      if (data) {
+        setDefeatedTiles(new Set(data.map(d => d.tile_key)));
+      }
+    };
+    fetchDefeated();
+
+    // Realtime subscription for shared map
+    const channel = supabase.channel('defeated-tiles-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'defeated_tiles' }, (payload) => {
+        const newTileKey = (payload.new as any).tile_key;
+        if (newTileKey) {
+          setDefeatedTiles(prev => {
+            const next = new Set(prev);
+            next.add(newTileKey);
+            return next;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   // Reveal tiles around current position
   useEffect(() => {
@@ -274,25 +304,23 @@ const Game = () => {
         await updateGold(newGold);
         updateQuestProgress('collect_gold', newGold);
         toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
-        // Mark as collected
-        setDefeatedTiles(prev => {
-          const next = new Set(prev);
-          next.add(tileKey);
-          if (user) localStorage.setItem(`defeated_${user.id}`, JSON.stringify([...next]));
-          return next;
-        });
+        // Mark as collected in shared DB
+        if (user) {
+          await supabase.from('defeated_tiles').insert({
+            tile_key: tileKey, killed_by: user.id, tile_type: tile.type,
+          });
+        }
       }
     }
   };
 
-  const handleBattleVictory = () => {
+  const handleBattleVictory = async () => {
     const tileKey = `${playerRow},${playerCol}`;
-    setDefeatedTiles(prev => {
-      const next = new Set(prev);
-      next.add(tileKey);
-      if (user) localStorage.setItem(`defeated_${user.id}`, JSON.stringify([...next]));
-      return next;
-    });
+    if (user) {
+      await supabase.from('defeated_tiles').insert({
+        tile_key: tileKey, killed_by: user.id, tile_type: 'monster',
+      });
+    }
     updateQuestProgress('kill');
     setBattleData(null);
   };
@@ -307,11 +335,8 @@ const Game = () => {
     await supabase.from('player_artifacts').insert({
       user_id: user.id, artifact_id: artifact.id, slot: artifact.slot, is_equipped: false,
     });
-    setDefeatedTiles(prev => {
-      const next = new Set(prev);
-      next.add(tileKey);
-      if (user) localStorage.setItem(`defeated_${user.id}`, JSON.stringify([...next]));
-      return next;
+    await supabase.from('defeated_tiles').insert({
+      tile_key: tileKey, killed_by: user.id, tile_type: 'artifact',
     });
     toast.success(
       <div className="flex items-center gap-2">
@@ -359,7 +384,6 @@ const Game = () => {
     localStorage.removeItem(`fog_${user.id}`);
     localStorage.removeItem(`pool_${user.id}`);
     localStorage.removeItem(`poolWeek_${user.id}`);
-    localStorage.removeItem(`defeated_${user.id}`);
     localStorage.removeItem(`leadership_bonus_${user.id}`);
     setRevealedTiles(new Set());
     setDefeatedTiles(new Set());

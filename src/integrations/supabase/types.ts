@@ -77,6 +77,30 @@ export type Database = {
         }
         Relationships: []
       }
+      defeated_tiles: {
+        Row: {
+          id: string
+          killed_at: string
+          killed_by: string
+          tile_key: string
+          tile_type: string
+        }
+        Insert: {
+          id?: string
+          killed_at?: string
+          killed_by: string
+          tile_key: string
+          tile_type?: string
+        }
+        Update: {
+          id?: string
+          killed_at?: string
+          killed_by?: string
+          tile_key?: string
+          tile_type?: string
+        }
+        Relationships: []
+      }
       guild_members: {
         Row: {
           guild_id: string
