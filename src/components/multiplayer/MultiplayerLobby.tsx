@@ -136,6 +136,21 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
         return;
       }
 
+      // Check if already in this room
+      const { data: existingPlayer } = await supabase
+        .from('multiplayer_players')
+        .select('*')
+        .eq('room_id', roomData.id)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (existingPlayer) {
+        toast.success(`Вы вернулись в комнату #${joinCode}`);
+        onJoinRoom(roomData, existingPlayer as unknown as PlayerData);
+        setLoading(false);
+        return;
+      }
+
       // Check max players
       const { count } = await supabase
         .from('multiplayer_players')
@@ -159,7 +174,6 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
       let playerNumber = 1;
       while (usedNumbers.has(playerNumber)) playerNumber++;
 
-      // Join as new player - always start fresh (no profile data)
       const spawnPos = getSpawnPosition(playerNumber - 1, roomData.map_size);
       const { data: player, error: pError } = await supabase
         .from('multiplayer_players')
@@ -172,34 +186,13 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
           character_name: null,
           town: null,
           hero_id: null,
-          hero_level: 1,
-          hero_experience: 0,
-          hero_attack: 1,
-          hero_defense: 1,
-          hero_spellpower: 1,
-          hero_knowledge: 1,
           is_ready: false,
           status: 'setup',
         })
         .select()
         .single();
 
-      if (pError) {
-        if (pError.message?.includes('unique')) {
-          // Already in room - fetch existing player
-          const { data: existingPlayer } = await supabase
-            .from('multiplayer_players')
-            .select('*')
-            .eq('room_id', roomData.id)
-            .eq('user_id', userId)
-            .single();
-          if (existingPlayer) {
-            onJoinRoom(roomData, existingPlayer as unknown as PlayerData);
-            return;
-          }
-        }
-        throw pError;
-      }
+      if (pError) throw pError;
 
       toast.success(`Вы вошли в комнату #${joinCode}`);
       onJoinRoom(roomData, player as unknown as PlayerData);
