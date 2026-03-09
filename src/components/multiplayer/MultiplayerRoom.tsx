@@ -101,8 +101,8 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
   };
 
   const handleStartGame = async () => {
-    if (allPlayers.length !== room.max_players) {
-      toast.error('Комната ещё не заполнена');
+    if (allPlayers.length < 2) {
+      toast.error('Нужно минимум 2 игрока');
       return;
     }
     const readyPlayers = allPlayers.filter(p => p.is_ready);
