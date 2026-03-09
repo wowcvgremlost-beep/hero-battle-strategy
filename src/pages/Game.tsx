@@ -6,7 +6,8 @@ import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText } from 'lucide-react';
+import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -19,13 +20,14 @@ import LevelUpModal from '@/components/game/LevelUpModal';
 import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
+import EquipmentScreen from '@/components/game/EquipmentScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment';
 
 // Calculate weekly growth for a unit based on buildings
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
@@ -262,12 +264,50 @@ const Game = () => {
       });
     } else if (tile.type === 'npc') {
       toast.info(`📜 ${tile.name} — откройте вкладку КВЕСТЫ для задания`);
+    } else if (tile.type === 'artifact' && tile.artifactRarity) {
+      // Handle artifact discovery
+      await handleArtifactDiscovery(tile.artifactRarity, tile.name);
     } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
       const newGold = (profile?.gold || 0) + tile.goldReward;
       await updateGold(newGold);
       updateQuestProgress('collect_gold', newGold);
       toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
     }
+  };
+
+  const handleArtifactDiscovery = async (rarity: ArtifactRarity, tileName: string) => {
+    if (!user) return;
+    
+    // Check if already collected this artifact location
+    const collectedKey = `artifact_collected_${profile?.map_position}`;
+    const alreadyCollected = localStorage.getItem(`${collectedKey}_${user.id}`);
+    if (alreadyCollected) {
+      toast.info(`${tileName} уже обыскан`);
+      return;
+    }
+
+    const artifact = getRandomArtifact(rarity);
+    
+    // Add to player's inventory
+    await supabase.from('player_artifacts').insert({
+      user_id: user.id,
+      artifact_id: artifact.id,
+      slot: artifact.slot,
+      is_equipped: false,
+    });
+
+    // Mark as collected
+    localStorage.setItem(`${collectedKey}_${user.id}`, 'true');
+
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">{artifact.icon}</span>
+        <div>
+          <p className="font-bold">Найден артефакт!</p>
+          <p className="text-xs">{artifact.name} ({ARTIFACT_RARITY_NAMES[artifact.rarity]})</p>
+        </div>
+      </div>
+    );
   };
 
   const handleEndTurn = async () => {
@@ -298,6 +338,7 @@ const Game = () => {
       supabase.from('battles').delete().eq('attacker_id', user.id),
       supabase.from('hero_skills').delete().eq('user_id', user.id),
       supabase.from('player_quests').delete().eq('user_id', user.id),
+      supabase.from('player_artifacts').delete().eq('user_id', user.id),
     ]);
     await supabase.from('profiles').update({
       character_created: false, character_name: null, town: null, hero_id: null,
@@ -435,6 +476,7 @@ const Game = () => {
             { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
             { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
+            { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
             { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
@@ -528,6 +570,12 @@ const Game = () => {
         {tab === 'quests' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <QuestScreen />
+          </motion.div>
+        )}
+
+        {tab === 'equipment' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <EquipmentScreen />
           </motion.div>
         )}
       </div>

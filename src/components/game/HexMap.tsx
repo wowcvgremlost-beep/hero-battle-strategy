@@ -37,6 +37,7 @@ const TILE_FILL: Record<string, string> = {
   mine: 'hsl(280 50% 55%)',
   monster: 'hsl(0 60% 50%)',
   npc: 'hsl(180 60% 50%)',
+  artifact: 'hsl(270 70% 60%)',
   empty: 'hsl(0 0% 90%)',
 };
 
@@ -51,6 +52,7 @@ const TILE_STROKE: Record<string, string> = {
   mine: 'hsl(280 40% 40%)',
   monster: 'hsl(0 50% 35%)',
   npc: 'hsl(180 50% 35%)',
+  artifact: 'hsl(270 60% 45%)',
   empty: 'hsl(0 0% 75%)',
 };
 
@@ -65,6 +67,7 @@ const TILE_ICONS: Record<string, string> = {
   mine: '⛏️',
   monster: '💀',
   npc: '❓',
+  artifact: '🎁',
   empty: '',
 };
 

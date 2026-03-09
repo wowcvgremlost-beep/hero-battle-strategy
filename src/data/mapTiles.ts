@@ -1,4 +1,4 @@
-export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'empty';
+export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'artifact' | 'empty';
 
 export interface MapTile {
   id: number;
@@ -9,6 +9,7 @@ export interface MapTile {
   monsterPower?: number;
   passable: boolean;
   npcQuestId?: string;
+  artifactRarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 }
 
 export const MAP_COLS = 60;
@@ -158,6 +159,43 @@ function generateMap(): MapTile[] {
     }
   }
 
+  // Artifacts scattered across the map
+  const artifactSpawns: { pos: number; name: string; rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' }[] = [
+    // Common artifacts
+    { pos: 4 * MAP_COLS + 8, name: 'Старый сундук', rarity: 'common' },
+    { pos: 9 * MAP_COLS + 35, name: 'Забытый тайник', rarity: 'common' },
+    { pos: 16 * MAP_COLS + 12, name: 'Разрушенная повозка', rarity: 'common' },
+    { pos: 22 * MAP_COLS + 52, name: 'Заброшенный лагерь', rarity: 'common' },
+    { pos: 31 * MAP_COLS + 18, name: 'Скрытая пещера', rarity: 'common' },
+    { pos: 38 * MAP_COLS + 42, name: 'Древний колодец', rarity: 'common' },
+    { pos: 44 * MAP_COLS + 8, name: 'Руины сторожки', rarity: 'common' },
+    { pos: 47 * MAP_COLS + 28, name: 'Потерянный мешок', rarity: 'common' },
+    // Uncommon artifacts
+    { pos: 7 * MAP_COLS + 22, name: 'Могила героя', rarity: 'uncommon' },
+    { pos: 13 * MAP_COLS + 45, name: 'Заколдованный грот', rarity: 'uncommon' },
+    { pos: 24 * MAP_COLS + 7, name: 'Склеп рыцаря', rarity: 'uncommon' },
+    { pos: 33 * MAP_COLS + 38, name: 'Тайная комната', rarity: 'uncommon' },
+    { pos: 41 * MAP_COLS + 55, name: 'Логово отшельника', rarity: 'uncommon' },
+    // Rare artifacts
+    { pos: 11 * MAP_COLS + 30, name: 'Древний храм', rarity: 'rare' },
+    { pos: 28 * MAP_COLS + 48, name: 'Гробница короля', rarity: 'rare' },
+    { pos: 37 * MAP_COLS + 15, name: 'Святилище', rarity: 'rare' },
+    // Epic artifacts
+    { pos: 19 * MAP_COLS + 38, name: 'Башня архимага', rarity: 'epic' },
+    { pos: 43 * MAP_COLS + 25, name: 'Портал в бездну', rarity: 'epic' },
+    // Legendary artifact
+    { pos: 25 * MAP_COLS + 30, name: 'Алтарь богов', rarity: 'legendary' },
+  ];
+  for (const spawn of artifactSpawns) {
+    if (!specific[spawn.pos]) {
+      specific[spawn.pos] = { 
+        type: 'artifact' as TileType, 
+        name: spawn.name, 
+        artifactRarity: spawn.rarity 
+      };
+    }
+  }
+
   // NPC quest givers
   const npcPositions: [number, string, string][] = [
     [3 * MAP_COLS + 10, 'Староста', 'kill_goblins'],
@@ -167,13 +205,13 @@ function generateMap(): MapTile[] {
     [22 * MAP_COLS + 45, 'Генерал', 'hire_army'],
     [28 * MAP_COLS + 15, 'Охотник', 'kill_strong'],
     [33 * MAP_COLS + 50, 'Банкир', 'collect_gold_2'],
-    [38 * MAP_COLS + 30, 'Мудрец', 'explore_far'],
+    [38 * MAP_COLS + 33, 'Мудрец', 'explore_far'],
     [42 * MAP_COLS + 12, 'Мастер', 'build_many'],
     [46 * MAP_COLS + 38, 'Маршал', 'hire_legion'],
     [6 * MAP_COLS + 20, 'Оракул', 'kill_bosses'],
     [14 * MAP_COLS + 48, 'Дракон', 'collect_gold_3'],
     [26 * MAP_COLS + 5, 'Странник', 'explore_world'],
-    [36 * MAP_COLS + 42, 'Полководец', 'hire_horde'],
+    [36 * MAP_COLS + 44, 'Полководец', 'hire_horde'],
   ];
   for (const [pos, name, questId] of npcPositions) {
     if (pos >= 0 && pos < total) {
@@ -212,6 +250,7 @@ function generateMap(): MapTile[] {
         monsterPower: s.monsterPower,
         passable: s.type !== 'water' && s.type !== 'mountain',
         npcQuestId: s.npcQuestId,
+        artifactRarity: s.artifactRarity,
       });
     } else {
       tiles.push({
