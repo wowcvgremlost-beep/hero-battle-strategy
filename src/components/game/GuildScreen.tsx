@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TOWNS } from '@/data/towns';
 import { getSkillBonuses } from '@/data/skills';
 import { toast } from 'sonner';
-import { Users, Crown, Swords, Plus, LogOut, Zap, Trophy, Shield } from 'lucide-react';
+import { Users, Crown, Swords, Plus, LogOut, Zap, Trophy, Shield, MessageCircle, Send } from 'lucide-react';
 
 interface Guild {
   id: string;
@@ -68,6 +68,10 @@ const GuildScreen = () => {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newIcon, setNewIcon] = useState('⚔️');
+  const [chatMessages, setChatMessages] = useState<{ id: string; user_id: string; message: string; created_at: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const town = TOWNS.find(t => t.id === profile?.town);
   const skillsMap: Record<string, number> = {};
@@ -78,15 +82,20 @@ const GuildScreen = () => {
     if (user) loadData();
   }, [user]);
 
-  // Realtime subscription for raids
+  // Realtime subscription for raids and chat
   useEffect(() => {
     if (!myGuild) return;
     const channel = supabase
-      .channel('guild-raids')
+      .channel('guild-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'guild_raids', filter: `guild_id=eq.${myGuild.id}` },
         () => loadActiveRaid(myGuild.id))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'guild_raid_participants' },
         () => { if (activeRaid) loadRaidParticipants(activeRaid.id); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guild_messages', filter: `guild_id=eq.${myGuild.id}` },
+        (payload) => {
+          setChatMessages(prev => [...prev, payload.new as any]);
+          setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [myGuild, activeRaid]);
@@ -102,6 +111,7 @@ const GuildScreen = () => {
       if (guild) {
         await loadMembers((guild as any).id);
         await loadActiveRaid((guild as any).id);
+        await loadChatMessages((guild as any).id);
       }
       setMode('guild');
     } else {
@@ -134,6 +144,28 @@ const GuildScreen = () => {
   const loadRaidParticipants = async (raidId: string) => {
     const { data } = await supabase.from('guild_raid_participants').select('*').eq('raid_id', raidId);
     setRaidParticipants((data || []) as RaidParticipant[]);
+  };
+
+  const loadChatMessages = async (guildId: string) => {
+    const { data } = await supabase.from('guild_messages').select('id, user_id, message, created_at')
+      .eq('guild_id', guildId).order('created_at', { ascending: true }).limit(100);
+    setChatMessages((data || []) as any[]);
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
+  };
+
+  const sendChatMessage = async () => {
+    if (!user || !myGuild || !chatInput.trim() || sendingChat) return;
+    setSendingChat(true);
+    try {
+      await supabase.from('guild_messages').insert({
+        guild_id: myGuild.id, user_id: user.id, message: chatInput.trim(),
+      });
+      setChatInput('');
+    } catch {
+      toast.error('Ошибка отправки');
+    } finally {
+      setSendingChat(false);
+    }
   };
 
   const loadAllGuilds = async () => {
@@ -394,6 +426,48 @@ const GuildScreen = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* Chat */}
+        <div className="rounded-xl border border-border bg-gradient-card p-4 space-y-2">
+          <h4 className="font-display text-sm font-bold text-foreground uppercase flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" /> Чат гильдии
+          </h4>
+          <div className="h-48 overflow-y-auto rounded-lg bg-secondary/30 p-2 space-y-1.5">
+            {chatMessages.length === 0 && (
+              <p className="text-[10px] text-muted-foreground text-center py-8">Пока нет сообщений. Напишите первое!</p>
+            )}
+            {chatMessages.map(msg => {
+              const isMe = msg.user_id === user?.id;
+              const senderName = memberProfiles[msg.user_id]?.character_name || 'Игрок';
+              const time = new Date(msg.created_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+              return (
+                <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[80%] rounded-lg px-2.5 py-1.5 ${isMe ? 'bg-gold/20' : 'bg-secondary'}`}>
+                    {!isMe && <p className="text-[9px] text-gold font-bold">{senderName}</p>}
+                    <p className="text-xs text-foreground break-words">{msg.message}</p>
+                    <p className="text-[8px] text-muted-foreground text-right">{time}</p>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') sendChatMessage(); }}
+              maxLength={200}
+              placeholder="Сообщение..."
+              className="flex-1 rounded-lg bg-secondary border border-border px-3 py-2 text-xs text-foreground focus:outline-none focus:border-gold/50"
+            />
+            <motion.button whileTap={{ scale: 0.9 }} onClick={sendChatMessage}
+              disabled={!chatInput.trim() || sendingChat}
+              className="rounded-lg bg-gradient-gold p-2 text-primary-foreground disabled:opacity-40">
+              <Send className="h-4 w-4" />
+            </motion.button>
+          </div>
         </div>
       </div>
     );
