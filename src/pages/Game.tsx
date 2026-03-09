@@ -641,6 +641,18 @@ const Game = () => {
           onClose={() => setPvpTarget(null)}
         />
       )}
+
+      {activeDungeon && (
+        <DungeonScreen
+          dungeon={activeDungeon}
+          onClose={() => setActiveDungeon(null)}
+          onComplete={() => {
+            updateQuestProgress('kill');
+            setActiveDungeon(null);
+            refreshProfile();
+          }}
+        />
+      )}
     </div>
   );
 };
