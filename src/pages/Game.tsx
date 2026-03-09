@@ -384,7 +384,6 @@ const Game = () => {
     localStorage.removeItem(`fog_${user.id}`);
     localStorage.removeItem(`pool_${user.id}`);
     localStorage.removeItem(`poolWeek_${user.id}`);
-    localStorage.removeItem(`defeated_${user.id}`);
     localStorage.removeItem(`leadership_bonus_${user.id}`);
     setRevealedTiles(new Set());
     setDefeatedTiles(new Set());
