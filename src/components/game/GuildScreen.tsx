@@ -82,15 +82,20 @@ const GuildScreen = () => {
     if (user) loadData();
   }, [user]);
 
-  // Realtime subscription for raids
+  // Realtime subscription for raids and chat
   useEffect(() => {
     if (!myGuild) return;
     const channel = supabase
-      .channel('guild-raids')
+      .channel('guild-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'guild_raids', filter: `guild_id=eq.${myGuild.id}` },
         () => loadActiveRaid(myGuild.id))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'guild_raid_participants' },
         () => { if (activeRaid) loadRaidParticipants(activeRaid.id); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guild_messages', filter: `guild_id=eq.${myGuild.id}` },
+        (payload) => {
+          setChatMessages(prev => [...prev, payload.new as any]);
+          setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [myGuild, activeRaid]);
