@@ -338,6 +338,7 @@ const Game = () => {
       supabase.from('battles').delete().eq('attacker_id', user.id),
       supabase.from('hero_skills').delete().eq('user_id', user.id),
       supabase.from('player_quests').delete().eq('user_id', user.id),
+      supabase.from('player_artifacts').delete().eq('user_id', user.id),
     ]);
     await supabase.from('profiles').update({
       character_created: false, character_name: null, town: null, hero_id: null,
