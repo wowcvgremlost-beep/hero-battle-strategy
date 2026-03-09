@@ -59,6 +59,7 @@ const Game = () => {
   // Convert heroSkills array to a map
   const skillsMap: Record<string, number> = {};
   heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
+  const skillBonuses = getSkillBonuses(skillsMap);
 
   // Creature pool: how many of each unit are available to hire this week
   // Stored in localStorage, reset each week
