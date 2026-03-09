@@ -57,9 +57,6 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
     
     await supabase.from('multiplayer_players').update({ town: townId }).eq('id', myPlayer.id);
     
-    // Save to profile for next time
-    await supabase.from('profiles').update({ town: townId }).eq('user_id', myPlayer.user_id);
-    
     setStep('hero');
     onRefreshPlayers();
   };
