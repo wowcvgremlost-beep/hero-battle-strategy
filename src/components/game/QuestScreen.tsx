@@ -83,7 +83,12 @@ const QuestScreen = ({ onQuestsChange, onLeadershipReward }: QuestScreenProps) =
       await updateHeroStats({ hero_experience: newExp });
     }
 
-    toast.success(`Награда получена! +${quest.goldReward}💰 +${quest.expReward}✨`);
+    let rewardMsg = `Награда получена! +${quest.goldReward}💰 +${quest.expReward}✨`;
+    if (quest.leadershipReward) {
+      onLeadershipReward?.(quest.leadershipReward);
+      rewardMsg += ` +${quest.leadershipReward}👑 Лидерство`;
+    }
+    toast.success(rewardMsg);
     await fetchQuests();
     onQuestsChange?.();
   };
