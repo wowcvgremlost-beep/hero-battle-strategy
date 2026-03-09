@@ -586,6 +586,7 @@ export type Database = {
           map_size: number
           max_players: number
           password: string
+          player_count: number
           room_code: string
           status: string
         }
@@ -597,6 +598,7 @@ export type Database = {
           map_size?: number
           max_players?: number
           password?: string
+          player_count?: number
           room_code: string
           status?: string
         }
@@ -608,6 +610,7 @@ export type Database = {
           map_size?: number
           max_players?: number
           password?: string
+          player_count?: number
           room_code?: string
           status?: string
         }
@@ -997,6 +1000,10 @@ export type Database = {
       is_room_member: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
+      }
+      recompute_room_player_count: {
+        Args: { _room_id: string }
+        Returns: undefined
       }
     }
     Enums: {
