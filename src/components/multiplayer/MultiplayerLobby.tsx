@@ -133,7 +133,7 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
         return;
       }
 
-      const result = data as { room: RoomData; player: PlayerData };
+      const result = data as unknown as { room: RoomData; player: PlayerData };
       const roomData = result.room;
       const playerData = result.player;
 
