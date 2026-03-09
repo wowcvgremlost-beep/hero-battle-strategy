@@ -354,10 +354,12 @@ const Game = () => {
     localStorage.removeItem(`pool_${user.id}`);
     localStorage.removeItem(`poolWeek_${user.id}`);
     localStorage.removeItem(`defeated_${user.id}`);
+    localStorage.removeItem(`leadership_bonus_${user.id}`);
     setRevealedTiles(new Set());
     setDefeatedTiles(new Set());
     setCreaturePool({});
     setPoolWeek(0);
+    setQuestLeadershipBonus(0);
     setShowDeleteConfirm(false);
     await refreshProfile();
     await refreshBuildings();
