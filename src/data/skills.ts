@@ -86,8 +86,20 @@ export function getRandomSkillChoices(currentSkills: Record<string, number>): Sk
 }
 
 // Apply skill bonuses to hero stats
-export const BASE_ARMY_CAPACITY = 20;
-export const LEADERSHIP_PER_LEVEL = 15;
+export const BASE_ARMY_CAPACITY = 500;
+export const LEADERSHIP_PER_LEVEL = 50;
+
+// Leadership cost per unit level
+export const UNIT_LEADERSHIP_COST: Record<number, number> = {
+  1: 5,
+  2: 10,
+  3: 15,
+  4: 25,
+  5: 35,
+  6: 50,
+  7: 100,
+  8: 120,
+};
 
 export function getSkillBonuses(skills: Record<string, number>) {
   return {

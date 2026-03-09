@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS, type TownId } from '@/data/towns';
 import { TOWN_BUILDINGS } from '@/data/buildings';
+import { UNIT_LEADERSHIP_COST } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Swords, Shield, Heart, Zap, Coins, ShoppingCart, Lock, Info, Ban, Minus, Plus } from 'lucide-react';
@@ -76,14 +77,17 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
 
   const hireUnit = async (unitName: string, costPerUnit: number, amount: number) => {
     if (!user || !profile || buying || amount <= 0) return;
-    const totalUnits = army.reduce((s, a) => s + a.count, 0);
-    const capacityLeft = armyCapacity - totalUnits;
-    if (capacityLeft <= 0) {
-      toast.error('Армия переполнена! Повысьте Лидерство.');
+    const unitData = town.units.find(u => u.name === unitName);
+    const unitLeadershipCost = UNIT_LEADERSHIP_COST[unitData?.level || 1] || 5;
+    const usedLeadership = getUsedLeadership();
+    const leadershipLeft = armyCapacity - usedLeadership;
+    const maxByLeadership = Math.floor(leadershipLeft / unitLeadershipCost);
+    if (maxByLeadership <= 0) {
+      toast.error('Не хватает Лидерства! Повысьте навык или найдите артефакты.');
       return;
     }
     const available = getAvailable(unitName);
-    const actualAmount = Math.min(amount, available, capacityLeft);
+    const actualAmount = Math.min(amount, available, maxByLeadership);
     if (actualAmount <= 0) {
       toast.error('Нет доступных существ!');
       return;
@@ -125,13 +129,25 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
   const hireAll = async (unitName: string, costPerUnit: number) => {
     const available = getAvailable(unitName);
     if (!profile || available <= 0) return;
+    const unitData = town.units.find(u => u.name === unitName);
+    const unitLeadershipCost = UNIT_LEADERSHIP_COST[unitData?.level || 1] || 5;
+    const leadershipLeft = armyCapacity - getUsedLeadership();
+    const maxByLeadership = Math.floor(leadershipLeft / unitLeadershipCost);
     const maxAffordable = Math.floor(profile.gold / costPerUnit);
-    const amount = Math.min(available, maxAffordable);
+    const amount = Math.min(available, maxAffordable, maxByLeadership);
     if (amount <= 0) {
-      toast.error('Недостаточно золота!');
+      toast.error('Недостаточно золота или лидерства!');
       return;
     }
     await hireUnit(unitName, costPerUnit, amount);
+  };
+
+  const getUsedLeadership = () => {
+    return army.reduce((sum, a) => {
+      const unitData = town.units.find(u => u.name === a.unit_name);
+      const cost = UNIT_LEADERSHIP_COST[unitData?.level || 1] || 5;
+      return sum + a.count * cost;
+    }, 0);
   };
 
   const totalPower = army.reduce((sum, unit) => {
@@ -139,8 +155,7 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
     return sum + (unitData ? unit.count * unitData.value : 0);
   }, 0);
 
-  const totalUnits = army.reduce((s, a) => s + a.count, 0);
-  const capacityLeft = armyCapacity - totalUnits;
+  const usedLeadership = getUsedLeadership();
 
   return (
     <div className="space-y-4">
@@ -150,14 +165,10 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
           <p className="font-display text-lg font-bold text-gold">{totalPower.toLocaleString()}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase">Юнитов</p>
-          <p className={`font-display text-lg font-bold ${totalUnits >= armyCapacity ? 'text-crimson' : 'text-foreground'}`}>
-            {totalUnits} / {armyCapacity}
-          </p>
-        </div>
-        <div>
           <p className="text-[10px] text-muted-foreground uppercase">👑 Лидерство</p>
-          <p className="font-display text-lg font-bold text-arcane">{armyCapacity}</p>
+          <p className={`font-display text-lg font-bold ${usedLeadership >= armyCapacity ? 'text-crimson' : 'text-foreground'}`}>
+            {usedLeadership} / {armyCapacity}
+          </p>
         </div>
       </div>
 
@@ -227,7 +238,7 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
                 </div>
               )}
               <div className="text-[10px] text-muted-foreground mb-1.5">
-                Прирост: {u.growth}/нед. | {u.movement} | {u.status}
+                Прирост: {u.growth}/нед. | {u.movement} | {u.status} | 👑 {UNIT_LEADERSHIP_COST[u.level] || 5}/ед.
               </div>
               
               {unlocked ? (
