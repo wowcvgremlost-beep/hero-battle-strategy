@@ -114,88 +114,31 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
     if (loading || !joinCode) return;
     setLoading(true);
     try {
-      const { data: room, error } = await supabase
-        .from('multiplayer_rooms')
-        .select('*')
-        .eq('room_code', joinCode)
-        .eq('status', 'waiting')
-        .single();
+      const { data, error } = await supabase.rpc('join_multiplayer_room', {
+        _room_code: joinCode,
+        _password: joinPassword || null,
+      });
 
-      if (error || !room) {
-        toast.error('Комната не найдена или игра уже началась');
+      if (error) {
+        if (error.message.includes('password')) {
+          toast.error('Неверный пароль');
+        } else if (error.message.includes('full')) {
+          toast.error('Комната заполнена');
+        } else if (error.message.includes('not found')) {
+          toast.error('Комната не найдена или игра уже началась');
+        } else {
+          toast.error(error.message || 'Ошибка входа');
+        }
         setLoading(false);
         return;
       }
 
-      const roomData = room as RoomData;
-
-      // Check password
-      if (roomData.password && roomData.password !== joinPassword) {
-        toast.error('Неверный пароль');
-        setLoading(false);
-        return;
-      }
-
-      // Check if already in this room
-      const { data: existingPlayer } = await supabase
-        .from('multiplayer_players')
-        .select('*')
-        .eq('room_id', roomData.id)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (existingPlayer) {
-        toast.success(`Вы вернулись в комнату #${joinCode}`);
-        onJoinRoom(roomData, existingPlayer as unknown as PlayerData);
-        setLoading(false);
-        return;
-      }
-
-      // Check max players
-      const { count } = await supabase
-        .from('multiplayer_players')
-        .select('*', { count: 'exact', head: true })
-        .eq('room_id', roomData.id);
-
-      if ((count || 0) >= roomData.max_players) {
-        toast.error('Комната заполнена');
-        setLoading(false);
-        return;
-      }
-
-      // Get next player number
-      const { data: existingPlayers } = await supabase
-        .from('multiplayer_players')
-        .select('player_number')
-        .eq('room_id', roomData.id)
-        .order('player_number');
-
-      const usedNumbers = new Set((existingPlayers || []).map((p: any) => p.player_number));
-      let playerNumber = 1;
-      while (usedNumbers.has(playerNumber)) playerNumber++;
-
-      const spawnPos = getSpawnPosition(playerNumber - 1, roomData.map_size);
-      const { data: player, error: pError } = await supabase
-        .from('multiplayer_players')
-        .insert({
-          room_id: roomData.id,
-          user_id: userId,
-          player_number: playerNumber,
-          map_row: spawnPos.row,
-          map_col: spawnPos.col,
-          character_name: null,
-          town: null,
-          hero_id: null,
-          is_ready: false,
-          status: 'setup',
-        })
-        .select()
-        .single();
-
-      if (pError) throw pError;
+      const result = data as unknown as { room: RoomData; player: PlayerData };
+      const roomData = result.room;
+      const playerData = result.player;
 
       toast.success(`Вы вошли в комнату #${joinCode}`);
-      onJoinRoom(roomData, player as unknown as PlayerData);
+      onJoinRoom(roomData, playerData);
     } catch (e: any) {
       toast.error(e.message || 'Ошибка входа');
     } finally {
