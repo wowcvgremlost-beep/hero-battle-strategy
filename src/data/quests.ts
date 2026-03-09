@@ -29,7 +29,7 @@ export const QUESTS: QuestDef[] = [
   { id: 'collect_gold_2', name: 'Богатство королевства', description: 'Накопите 10000 золота', type: 'collect_gold', target: 10000, goldReward: 2000, expReward: 150, npcName: 'Банкир', npcEmoji: '💰', minLevel: 3 },
   { id: 'explore_far', name: 'Картограф', description: 'Исследуйте 50 клеток', type: 'explore', target: 50, goldReward: 1000, expReward: 250, npcName: 'Мудрец', npcEmoji: '🧙', minLevel: 3 },
   { id: 'build_many', name: 'Великий строитель', description: 'Постройте 8 зданий', type: 'build', target: 8, goldReward: 1500, expReward: 180, npcName: 'Мастер', npcEmoji: '🔨', minLevel: 3 },
-  { id: 'hire_legion', name: 'Легион', description: 'Наймите 30 юнитов', type: 'hire', target: 30, goldReward: 1200, expReward: 200, npcName: 'Маршал', npcEmoji: '🛡️', minLevel: 3 },
+  { id: 'hire_legion', name: 'Легион', description: 'Наймите 30 юнитов', type: 'hire', target: 30, goldReward: 1200, expReward: 200, leadershipReward: 10, npcName: 'Маршал', npcEmoji: '🛡️', minLevel: 3 },
 
   // Late-game quests
   { id: 'kill_bosses', name: 'Истребитель', description: 'Победите 10 монстров', type: 'kill', target: 10, goldReward: 3000, expReward: 500, npcName: 'Оракул', npcEmoji: '🔮', minLevel: 5 },
