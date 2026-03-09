@@ -304,6 +304,362 @@ export type Database = {
         }
         Relationships: []
       }
+      multiplayer_army: {
+        Row: {
+          count: number
+          id: string
+          player_id: string
+          unit_name: string
+        }
+        Insert: {
+          count?: number
+          id?: string
+          player_id: string
+          unit_name: string
+        }
+        Update: {
+          count?: number
+          id?: string
+          player_id?: string
+          unit_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_army_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_chat: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          player_name: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          player_name?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          player_name?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_chat_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_defeated_tiles: {
+        Row: {
+          id: string
+          killed_at: string
+          killed_by: string
+          room_id: string
+          tile_key: string
+        }
+        Insert: {
+          id?: string
+          killed_at?: string
+          killed_by: string
+          room_id: string
+          tile_key: string
+        }
+        Update: {
+          id?: string
+          killed_at?: string
+          killed_by?: string
+          room_id?: string
+          tile_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_defeated_tiles_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_duels: {
+        Row: {
+          challenger_id: string
+          challenger_roll: number | null
+          created_at: string
+          defender_id: string
+          defender_roll: number | null
+          gold_stake: number
+          id: string
+          room_id: string
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          challenger_id: string
+          challenger_roll?: number | null
+          created_at?: string
+          defender_id: string
+          defender_roll?: number | null
+          gold_stake?: number
+          id?: string
+          room_id: string
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          challenger_id?: string
+          challenger_roll?: number | null
+          created_at?: string
+          defender_id?: string
+          defender_roll?: number | null
+          gold_stake?: number
+          id?: string
+          room_id?: string
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_duels_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_players: {
+        Row: {
+          character_name: string | null
+          created_at: string
+          day: number
+          gold: number
+          has_ended_turn: boolean
+          health: number
+          hero_attack: number
+          hero_defense: number
+          hero_experience: number
+          hero_id: string | null
+          hero_knowledge: number
+          hero_level: number
+          hero_spellpower: number
+          id: string
+          is_ready: boolean
+          mana: number
+          map_col: number
+          map_row: number
+          player_number: number
+          room_id: string
+          status: string
+          town: string | null
+          user_id: string
+        }
+        Insert: {
+          character_name?: string | null
+          created_at?: string
+          day?: number
+          gold?: number
+          has_ended_turn?: boolean
+          health?: number
+          hero_attack?: number
+          hero_defense?: number
+          hero_experience?: number
+          hero_id?: string | null
+          hero_knowledge?: number
+          hero_level?: number
+          hero_spellpower?: number
+          id?: string
+          is_ready?: boolean
+          mana?: number
+          map_col?: number
+          map_row?: number
+          player_number?: number
+          room_id: string
+          status?: string
+          town?: string | null
+          user_id: string
+        }
+        Update: {
+          character_name?: string | null
+          created_at?: string
+          day?: number
+          gold?: number
+          has_ended_turn?: boolean
+          health?: number
+          hero_attack?: number
+          hero_defense?: number
+          hero_experience?: number
+          hero_id?: string | null
+          hero_knowledge?: number
+          hero_level?: number
+          hero_spellpower?: number
+          id?: string
+          is_ready?: boolean
+          mana?: number
+          map_col?: number
+          map_row?: number
+          player_number?: number
+          room_id?: string
+          status?: string
+          town?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_raids: {
+        Row: {
+          boss_power: number
+          created_at: string
+          exp_reward: number
+          gold_reward: number
+          id: string
+          raid_name: string
+          room_id: string
+          status: string
+          total_damage: number
+        }
+        Insert: {
+          boss_power?: number
+          created_at?: string
+          exp_reward?: number
+          gold_reward?: number
+          id?: string
+          raid_name: string
+          room_id: string
+          status?: string
+          total_damage?: number
+        }
+        Update: {
+          boss_power?: number
+          created_at?: string
+          exp_reward?: number
+          gold_reward?: number
+          id?: string
+          raid_name?: string
+          room_id?: string
+          status?: string
+          total_damage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_raids_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiplayer_rooms: {
+        Row: {
+          created_at: string
+          creator_id: string
+          current_round: number
+          id: string
+          map_size: number
+          max_players: number
+          password: string
+          room_code: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          current_round?: number
+          id?: string
+          map_size?: number
+          max_players?: number
+          password?: string
+          room_code: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          current_round?: number
+          id?: string
+          map_size?: number
+          max_players?: number
+          password?: string
+          room_code?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      multiplayer_trades: {
+        Row: {
+          buyer_id: string | null
+          created_at: string
+          id: string
+          item_count: number
+          item_id: string
+          item_type: string
+          price: number
+          room_id: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          created_at?: string
+          id?: string
+          item_count?: number
+          item_id: string
+          item_type: string
+          price?: number
+          room_id: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          buyer_id?: string | null
+          created_at?: string
+          id?: string
+          item_count?: number
+          item_id?: string
+          item_type?: string
+          price?: number
+          room_id?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiplayer_trades_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "multiplayer_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_achievements: {
         Row: {
           achievement_id: string
@@ -636,6 +992,10 @@ export type Database = {
       }
       is_guild_member: {
         Args: { _guild_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_room_member: {
+        Args: { _room_id: string; _user_id: string }
         Returns: boolean
       }
     }
