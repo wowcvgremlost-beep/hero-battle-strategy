@@ -82,6 +82,13 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
 
       if (error) throw error;
 
+      // Get user's profile to preserve their hero
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
       // Join as player 1
       const spawnPos = getSpawnPosition(0, mapSize);
       const { data: player, error: pError } = await supabase
@@ -92,6 +99,15 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
           player_number: 1,
           map_row: spawnPos.row,
           map_col: spawnPos.col,
+          character_name: profile?.character_name || null,
+          town: profile?.town || null,
+          hero_id: profile?.hero_id || null,
+          hero_level: profile?.hero_level || 1,
+          hero_experience: profile?.hero_experience || 0,
+          hero_attack: profile?.hero_attack || 1,
+          hero_defense: profile?.hero_defense || 1,
+          hero_spellpower: profile?.hero_spellpower || 1,
+          hero_knowledge: profile?.hero_knowledge || 1,
         })
         .select()
         .single();
@@ -156,6 +172,13 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
       let playerNumber = 1;
       while (usedNumbers.has(playerNumber)) playerNumber++;
 
+      // Get user's profile to preserve their hero
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
       const spawnPos = getSpawnPosition(playerNumber - 1, roomData.map_size);
       const { data: player, error: pError } = await supabase
         .from('multiplayer_players')
@@ -165,6 +188,15 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
           player_number: playerNumber,
           map_row: spawnPos.row,
           map_col: spawnPos.col,
+          character_name: profile?.character_name || null,
+          town: profile?.town || null,
+          hero_id: profile?.hero_id || null,
+          hero_level: profile?.hero_level || 1,
+          hero_experience: profile?.hero_experience || 0,
+          hero_attack: profile?.hero_attack || 1,
+          hero_defense: profile?.hero_defense || 1,
+          hero_spellpower: profile?.hero_spellpower || 1,
+          hero_knowledge: profile?.hero_knowledge || 1,
         })
         .select()
         .single();
