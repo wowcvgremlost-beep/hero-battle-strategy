@@ -522,7 +522,7 @@ const Game = () => {
             <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} onAttackPlayer={(p) => setPvpTarget(p)} />
 
             {/* Dice - disabled if already used this turn */}
-            <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} />
+            <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} logisticsBonus={skillBonuses.bonusMove} />
             {diceUsed && !diceRoll && (
               <p className="text-center text-[10px] text-muted-foreground">Вы уже бросали кубик в этот ход</p>
             )}
