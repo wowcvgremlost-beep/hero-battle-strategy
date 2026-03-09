@@ -111,6 +111,7 @@ const GuildScreen = () => {
       if (guild) {
         await loadMembers((guild as any).id);
         await loadActiveRaid((guild as any).id);
+        await loadChatMessages((guild as any).id);
       }
       setMode('guild');
     } else {
