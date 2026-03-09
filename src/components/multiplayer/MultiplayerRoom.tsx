@@ -45,14 +45,24 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
 
   const handleSetName = async () => {
     if (!charName.trim()) return;
+    
     await supabase.from('multiplayer_players').update({ character_name: charName.trim() }).eq('id', myPlayer.id);
+    
+    // Save to profile for next time
+    await supabase.from('profiles').update({ character_name: charName.trim() }).eq('user_id', myPlayer.user_id);
+    
     setStep('town');
     onRefreshPlayers();
   };
 
   const handleSelectTown = async (townId: TownId) => {
     setSelectedTown(townId);
+    
     await supabase.from('multiplayer_players').update({ town: townId }).eq('id', myPlayer.id);
+    
+    // Save to profile for next time
+    await supabase.from('profiles').update({ town: townId }).eq('user_id', myPlayer.user_id);
+    
     setStep('hero');
     onRefreshPlayers();
   };
