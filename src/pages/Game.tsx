@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
 import { HEROES } from '@/data/heroes';
