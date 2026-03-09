@@ -64,6 +64,20 @@ const Game = () => {
   heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
   const skillBonuses = getSkillBonuses(skillsMap);
 
+  // Fetch equipped artifacts for leadership bonus
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('player_artifacts').select('artifact_id').eq('user_id', user.id).eq('is_equipped', true)
+      .then(({ data }) => setEquippedArtifacts(data || []));
+  }, [user]);
+
+  const artifactLeadershipBonus = equippedArtifacts.reduce((sum, a) => {
+    const art = getArtifactById(a.artifact_id);
+    return sum + (art?.bonuses.leadership || 0);
+  }, 0);
+
+  const totalArmyCapacity = skillBonuses.armyCapacity + artifactLeadershipBonus + questLeadershipBonus;
+
   const [creaturePool, setCreaturePool] = useState<Record<string, number>>(() => {
     if (!user) return {};
     try { const s = localStorage.getItem(`pool_${user.id}`); if (s) return JSON.parse(s); } catch {}
