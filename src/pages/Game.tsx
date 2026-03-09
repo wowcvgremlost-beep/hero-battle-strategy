@@ -264,6 +264,9 @@ const Game = () => {
       });
     } else if (tile.type === 'npc') {
       toast.info(`📜 ${tile.name} — откройте вкладку КВЕСТЫ для задания`);
+    } else if (tile.type === 'artifact' && tile.artifactRarity) {
+      // Handle artifact discovery
+      await handleArtifactDiscovery(tile.artifactRarity, tile.name);
     } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
       const newGold = (profile?.gold || 0) + tile.goldReward;
       await updateGold(newGold);
@@ -271,6 +274,40 @@ const Game = () => {
       toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
     }
   };
+
+  const handleArtifactDiscovery = async (rarity: ArtifactRarity, tileName: string) => {
+    if (!user) return;
+    
+    // Check if already collected this artifact location
+    const collectedKey = `artifact_collected_${profile?.map_position}`;
+    const alreadyCollected = localStorage.getItem(`${collectedKey}_${user.id}`);
+    if (alreadyCollected) {
+      toast.info(`${tileName} уже обыскан`);
+      return;
+    }
+
+    const artifact = getRandomArtifact(rarity);
+    
+    // Add to player's inventory
+    await supabase.from('player_artifacts').insert({
+      user_id: user.id,
+      artifact_id: artifact.id,
+      slot: artifact.slot,
+      is_equipped: false,
+    });
+
+    // Mark as collected
+    localStorage.setItem(`${collectedKey}_${user.id}`, 'true');
+
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">{artifact.icon}</span>
+        <div>
+          <p className="font-bold">Найден артефакт!</p>
+          <p className="text-xs">{artifact.name} ({ARTIFACT_RARITY_NAMES[artifact.rarity]})</p>
+        </div>
+      </div>
+    );
 
   const handleEndTurn = async () => {
     if (!profile) return;
