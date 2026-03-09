@@ -82,16 +82,8 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
 
       if (error) throw error;
 
-      // Get user's profile to preserve their hero
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      // Join as player 1
+      // Join as player 1 - always start fresh (no profile data)
       const spawnPos = getSpawnPosition(0, mapSize);
-      const hasFullProfile = profile?.character_name && profile?.town && profile?.hero_id;
       const { data: player, error: pError } = await supabase
         .from('multiplayer_players')
         .insert({
@@ -100,17 +92,17 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
           player_number: 1,
           map_row: spawnPos.row,
           map_col: spawnPos.col,
-          character_name: profile?.character_name || null,
-          town: profile?.town || null,
-          hero_id: profile?.hero_id || null,
-          hero_level: profile?.hero_level || 1,
-          hero_experience: profile?.hero_experience || 0,
-          hero_attack: profile?.hero_attack || 1,
-          hero_defense: profile?.hero_defense || 1,
-          hero_spellpower: profile?.hero_spellpower || 1,
-          hero_knowledge: profile?.hero_knowledge || 1,
-          is_ready: !!hasFullProfile,
-          status: hasFullProfile ? 'playing' : 'setup',
+          character_name: null,
+          town: null,
+          hero_id: null,
+          hero_level: 1,
+          hero_experience: 0,
+          hero_attack: 1,
+          hero_defense: 1,
+          hero_spellpower: 1,
+          hero_knowledge: 1,
+          is_ready: false,
+          status: 'setup',
         })
         .select()
         .single();
