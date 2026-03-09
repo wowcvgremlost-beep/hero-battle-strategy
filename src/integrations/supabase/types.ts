@@ -376,6 +376,33 @@ export type Database = {
         }
         Relationships: []
       }
+      player_event_progress: {
+        Row: {
+          claimed: boolean
+          created_at: string
+          event_id: string
+          id: string
+          progress: number
+          user_id: string
+        }
+        Insert: {
+          claimed?: boolean
+          created_at?: string
+          event_id: string
+          id?: string
+          progress?: number
+          user_id: string
+        }
+        Update: {
+          claimed?: boolean
+          created_at?: string
+          event_id?: string
+          id?: string
+          progress?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_quests: {
         Row: {
           completed_at: string | null
