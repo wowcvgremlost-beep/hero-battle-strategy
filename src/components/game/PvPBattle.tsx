@@ -33,7 +33,9 @@ const PvPBattle = ({ target, onClose }: PvPBattleProps) => {
   const myArmyPower = army.reduce((total, unit) => {
     const unitData = myTown?.units.find(u => u.name === unit.unit_name);
     if (unitData) {
-      return total + unit.count * (unitData.attack + unitData.defense + Math.floor(unitData.value / 10));
+      const unitAtk = unitData.attack + (profile?.hero_attack || 1);
+      const unitDef = unitData.defense + (profile?.hero_defense || 1);
+      return total + unit.count * (unitAtk + unitDef + Math.floor(unitData.value / 10));
     }
     return total;
   }, 0);
