@@ -168,7 +168,7 @@ const GuildScreen = () => {
     }
   };
 
-
+  const loadAllGuilds = async () => {
     const { data } = await supabase.from('guilds').select('*').order('level', { ascending: false });
     setAllGuilds((data || []) as Guild[]);
   };
