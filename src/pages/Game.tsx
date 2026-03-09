@@ -5,19 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
 import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
-import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
-import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
+import { getCalendar, isNewWeek, getWeekNumber } from '@/data/calendar';
+import { getArtifactById } from '@/data/artifacts';
 import { Shield, Swords, LogOut, Building2, Users, Sparkles, Coins, BookOpen, Trash2, TrendingUp, Trophy, ScrollText, Package, Store, Flame, Award, CalendarDays, ArrowLeftRight, Castle } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
 import TowerView from '@/components/game/TowerView';
-import BattleSystem from '@/components/game/BattleSystem';
 import ArmyScreen from '@/components/game/ArmyScreen';
 import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
 import LevelUpModal from '@/components/game/LevelUpModal';
 import Leaderboard from '@/components/game/Leaderboard';
-import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
 import TradeScreen from '@/components/game/TradeScreen';
@@ -28,12 +26,11 @@ import DailyReward from '@/components/game/DailyReward';
 import AchievementsScreen from '@/components/game/AchievementsScreen';
 import EventsScreen from '@/components/game/EventsScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
-import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'market' | 'guild' | 'pvp' | 'achievements' | 'events';
+type GameTab = 'tower' | 'army' | 'buildings' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'market' | 'guild' | 'pvp' | 'achievements' | 'events';
 
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
   let growth = baseGrowth;
@@ -44,26 +41,18 @@ function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boo
 
 const Game = () => {
   const navigate = useNavigate();
-  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
+  const { user, profile, buildings, army, spells, heroSkills, signOut, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
-  const [tab, setTab] = useState<GameTab>('map');
-  const [diceRoll, setDiceRoll] = useState<number | null>(null);
-  const [diceUsed, setDiceUsed] = useState(false);
-  const [battleData, setBattleData] = useState<{ monsterPower: number; monsterName: string; goldReward: number; expReward: number } | null>(null);
+  const [tab, setTab] = useState<GameTab>('tower');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [levelUpPending, setLevelUpPending] = useState(false);
-  const [pvpTarget, setPvpTarget] = useState<any>(null);
-  const [activeDungeon, setActiveDungeon] = useState<Dungeon | null>(null);
   const [questLeadershipBonus, setQuestLeadershipBonus] = useState<number>(() => {
     if (!user) return 0;
     try { const s = localStorage.getItem(`leadership_bonus_${user.id}`); if (s) return parseInt(s); } catch {}
     return 0;
   });
   const [equippedArtifacts, setEquippedArtifacts] = useState<any[]>([]);
-
-  const playerRow = profile?.map_row ?? 0;
-  const playerCol = profile?.map_col ?? 0;
 
   const skillsMap: Record<string, number> = {};
   heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
@@ -93,73 +82,6 @@ const Game = () => {
     try { const s = localStorage.getItem(`poolWeek_${user.id}`); if (s) return parseInt(s); } catch {}
     return 0;
   });
-
-  // Fog of war - now uses string keys "row,col"
-  const [revealedTiles, setRevealedTiles] = useState<Set<string>>(() => {
-    if (!user) return new Set<string>();
-    try { const s = localStorage.getItem(`fog_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
-    return new Set<string>();
-  });
-
-  // Defeated tiles - shared across all players, respawn daily at 00:00 UTC
-  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(new Set<string>());
-
-  // Load defeated tiles from DB (only today's kills count - daily respawn)
-  useEffect(() => {
-    if (!user) return;
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-
-    const fetchDefeated = async () => {
-      const { data } = await supabase
-        .from('defeated_tiles')
-        .select('tile_key')
-        .gte('killed_at', todayStart.toISOString());
-      if (data) {
-        setDefeatedTiles(new Set(data.map(d => d.tile_key)));
-      }
-    };
-    fetchDefeated();
-
-    // Realtime subscription for shared map
-    const channel = supabase.channel('defeated-tiles-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'defeated_tiles' }, (payload) => {
-        const newTileKey = (payload.new as any).tile_key;
-        if (newTileKey) {
-          setDefeatedTiles(prev => {
-            const next = new Set(prev);
-            next.add(newTileKey);
-            return next;
-          });
-        }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
-
-  // Reveal tiles around current position
-  useEffect(() => {
-    const visible = getVisibleTiles(playerRow, playerCol, 4);
-    setRevealedTiles(prev => {
-      const next = new Set(prev);
-      let changed = false;
-      visible.forEach(key => { if (!next.has(key)) { next.add(key); changed = true; } });
-      if (changed) {
-        if (user) localStorage.setItem(`fog_${user.id}`, JSON.stringify([...next]));
-        return next;
-      }
-      return prev;
-    });
-  }, [playerRow, playerCol, user]);
-
-  // Random spawn
-  useEffect(() => {
-    if (profile && profile.map_row === 0 && profile.map_col === 0 && profile.character_created && user) {
-      const spawn = getRandomSpawnPosition();
-      updateMapPosition(spawn.row, spawn.col);
-    }
-  }, [profile?.character_created]);
 
   // Refresh creature pool on new week
   useEffect(() => {
@@ -206,14 +128,6 @@ const Game = () => {
     : buildings.some(b => b.building_id === 'mage_guild_2') ? 2
     : buildings.some(b => b.building_id === 'mage_guild_1') ? 1 : 0;
 
-  const calculateDailyIncome = useCallback((): number => {
-    const builtIds = buildings.map(b => b.building_id);
-    if (builtIds.includes('capitol')) return 4000;
-    if (builtIds.includes('municipality')) return 2000;
-    if (builtIds.includes('prefecture')) return 1000;
-    return 0;
-  }, [buildings]);
-
   useEffect(() => {
     if (profile) {
       const needed = expForLevel(profile.hero_level || 1);
@@ -231,137 +145,6 @@ const Game = () => {
     );
   }
 
-  const handleDiceRoll = (value: number) => { setDiceRoll(value); setDiceUsed(true); };
-  const handleTileSelect = (_tile: MapTile) => {};
-
-  const updateQuestProgress = async (type: string, increment: number = 1) => {
-    if (!user) return;
-    const { data: activeQuests } = await supabase.from('player_quests').select('*').eq('user_id', user.id).eq('status', 'active');
-    if (!activeQuests) return;
-    const typeToQuestIds: Record<string, string[]> = {
-      kill: ['kill_goblins', 'kill_strong', 'kill_bosses'],
-      explore: ['explore_tiles', 'explore_far', 'explore_world'],
-      build: ['build_first', 'build_many'],
-      hire: ['hire_army', 'hire_legion', 'hire_horde'],
-      collect_gold: ['collect_gold_1', 'collect_gold_2', 'collect_gold_3'],
-    };
-    const relevantIds = typeToQuestIds[type] || [];
-    for (const quest of activeQuests) {
-      if (relevantIds.includes(quest.quest_id)) {
-        const newProgress = type === 'collect_gold' ? increment : (quest as any).progress + increment;
-        await supabase.from('player_quests').update({ progress: Math.min(newProgress, (quest as any).target) }).eq('id', (quest as any).id);
-      }
-    }
-  };
-
-  const weekNumber = getWeekNumber(profile?.day || 1);
-
-  const handleMove = async (row: number, col: number) => {
-    const tile = getTileAt(row, col);
-    if (!tile) return;
-
-    await updateMapPosition(row, col);
-    setDiceRoll(null);
-
-    const visible = getVisibleTiles(row, col, 4);
-    setRevealedTiles(prev => {
-      const next = new Set(prev);
-      visible.forEach(key => next.add(key));
-      if (user) localStorage.setItem(`fog_${user.id}`, JSON.stringify([...next]));
-      return next;
-    });
-
-    updateQuestProgress('explore', revealedTiles.size);
-
-    const tileKey = `${row},${col}`;
-
-    if (tile.category === 'combat' && tile.monsterPower && !defeatedTiles.has(tileKey)) {
-      const scaledPower = getScaledMonsterPower(tile.monsterPower, weekNumber);
-      const { gold, exp } = getScaledRewards(tile.goldReward || 0, tile.expReward || 0, weekNumber);
-      setBattleData({
-        monsterPower: scaledPower,
-        monsterName: `${tile.name} [☠${tile.difficulty || '?'}]`,
-        goldReward: gold,
-        expReward: exp,
-      });
-    } else if (tile.type === 'npc') {
-      toast.info(`📜 ${tile.name} — откройте вкладку КВЕСТЫ для задания`);
-    } else if (tile.type === 'artifact' && tile.artifactRarity) {
-      await handleArtifactDiscovery(tile.artifactRarity, tile.name, tileKey);
-    } else if (tile.type === 'dungeon' && tile.dungeonId) {
-      const dungeon = getDungeonById(tile.dungeonId);
-      if (dungeon) {
-        if ((profile?.hero_level || 1) < dungeon.minHeroLevel) {
-          toast.error(`Требуется уровень ${dungeon.minHeroLevel} для входа в ${dungeon.name}`);
-        } else {
-          setActiveDungeon(dungeon);
-        }
-      }
-    } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
-      if (!defeatedTiles.has(tileKey)) {
-        const newGold = (profile?.gold || 0) + tile.goldReward;
-        await updateGold(newGold);
-        updateQuestProgress('collect_gold', newGold);
-        toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
-        // Mark as collected in shared DB
-        if (user) {
-          await supabase.from('defeated_tiles').insert({
-            tile_key: tileKey, killed_by: user.id, tile_type: tile.type,
-          });
-        }
-      }
-    }
-  };
-
-  const handleBattleVictory = async () => {
-    const tileKey = `${playerRow},${playerCol}`;
-    if (user) {
-      await supabase.from('defeated_tiles').insert({
-        tile_key: tileKey, killed_by: user.id, tile_type: 'monster',
-      });
-    }
-    updateQuestProgress('kill');
-    setBattleData(null);
-  };
-
-  const handleArtifactDiscovery = async (rarity: ArtifactRarity, tileName: string, tileKey: string) => {
-    if (!user) return;
-    if (defeatedTiles.has(tileKey)) {
-      toast.info(`${tileName} уже обыскан`);
-      return;
-    }
-    const artifact = getRandomArtifact(rarity);
-    await supabase.from('player_artifacts').insert({
-      user_id: user.id, artifact_id: artifact.id, slot: artifact.slot, is_equipped: false,
-    });
-    await supabase.from('defeated_tiles').insert({
-      tile_key: tileKey, killed_by: user.id, tile_type: 'artifact',
-    });
-    toast.success(
-      <div className="flex items-center gap-2">
-        <span className="text-2xl">{artifact.icon}</span>
-        <div>
-          <p className="font-bold">Найден артефакт!</p>
-          <p className="text-xs">{artifact.name} ({ARTIFACT_RARITY_NAMES[artifact.rarity]})</p>
-        </div>
-      </div>
-    );
-  };
-
-  const handleEndTurn = async () => {
-    if (!profile) return;
-    const newDay = (profile.day || 1) + 1;
-    const income = calculateDailyIncome();
-    if (income > 0) {
-      await updateGold((profile.gold || 0) + income);
-      toast.success(`Доход: +${income} золота`);
-    }
-    if (isNewWeek(newDay)) toast.info('🗓️ Новая неделя! Существа пополнены.');
-    await updateDay(newDay);
-    setDiceRoll(null);
-    setDiceUsed(false);
-  };
-
   const handleDeleteCharacter = async () => {
     if (!user) return;
     await Promise.all([
@@ -372,20 +155,18 @@ const Game = () => {
       supabase.from('hero_skills').delete().eq('user_id', user.id),
       supabase.from('player_quests').delete().eq('user_id', user.id),
       supabase.from('player_artifacts').delete().eq('user_id', user.id),
+      supabase.from('tower_kills').delete().eq('user_id', user.id),
+      supabase.from('tower_progress').delete().eq('user_id', user.id),
     ]);
     await supabase.from('profiles').update({
       character_created: false, character_name: null, town: null, hero_id: null,
       gold: 10000, mana: 50, hero_attack: 1, hero_defense: 1, hero_spellpower: 1,
       hero_knowledge: 1, hero_level: 1, hero_experience: 0, map_position: 0,
-      map_row: 0, map_col: 0,
-      day: 1, built_this_turn: false,
+      map_row: 0, map_col: 0, day: 1, built_this_turn: false,
     }).eq('user_id', user.id);
-    localStorage.removeItem(`fog_${user.id}`);
     localStorage.removeItem(`pool_${user.id}`);
     localStorage.removeItem(`poolWeek_${user.id}`);
     localStorage.removeItem(`leadership_bonus_${user.id}`);
-    setRevealedTiles(new Set());
-    setDefeatedTiles(new Set());
     setCreaturePool({});
     setPoolWeek(0);
     setQuestLeadershipBonus(0);
@@ -419,8 +200,6 @@ const Game = () => {
     toast.success(`Уровень ${newLevel}! ${SKILLS.find(s => s.id === skillId)?.name || skillId} улучшен!`);
   };
 
-  const currentTile = getTileAt(playerRow, playerCol);
-  const calendar = getCalendar(profile?.day || 1);
   const hasFort = buildings.some(b => b.building_id === 'fort');
 
   return (
@@ -447,14 +226,11 @@ const Game = () => {
               <Sparkles className="h-3 w-3 text-arcane" />
               <span className="text-xs font-bold text-arcane">{profile?.mana || 0}</span>
             </div>
-            <button onClick={() => navigate('/multiplayer')} className="text-muted-foreground hover:text-gold transition-colors" title="Мультиплеер">
-              <Users className="h-4 w-4" />
+            <button onClick={() => navigate('/')} className="text-muted-foreground hover:text-gold transition-colors" title="Главное меню">
+              <LogOut className="h-4 w-4" />
             </button>
             <button onClick={() => setShowDeleteConfirm(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить персонажа">
               <Trash2 className="h-4 w-4" />
-            </button>
-            <button onClick={signOut} className="text-muted-foreground hover:text-foreground transition-colors">
-              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -485,10 +261,6 @@ const Game = () => {
             <BookOpen className="h-3 w-3 text-emerald" />
             <span className="text-[10px] text-foreground">{profile?.hero_knowledge}</span>
           </div>
-          <div className="flex items-center gap-1 ml-auto">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[10px] text-muted-foreground">{calendar.dayName.slice(0,2)}, Нед.{calendar.weekInMonth}, {calendar.monthName.slice(0,3)}</span>
-          </div>
         </div>
       </div>
 
@@ -511,7 +283,7 @@ const Game = () => {
         <div className="space-y-1 mb-4">
           {[
             [
-              { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
+              { id: 'tower' as GameTab, icon: Castle, label: 'БАШНЯ' },
               { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
               { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
               { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
@@ -545,51 +317,8 @@ const Game = () => {
           ))}
         </div>
 
-        {tab === 'map' && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            <div className="rounded-xl border border-border bg-gradient-card p-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase">Дата</p>
-                <p className="font-display text-xs font-bold text-foreground">{formatDate(profile?.day || 1)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-muted-foreground uppercase">День</p>
-                <p className="font-display text-lg font-bold text-gold">{profile?.day || 1}</p>
-              </div>
-            </div>
-
-            {currentTile && (
-              <div className="rounded-xl border border-gold/20 bg-gradient-card p-3">
-                <p className="text-[10px] text-muted-foreground uppercase">Текущая позиция</p>
-                <p className="font-display text-sm font-bold text-foreground">
-                  {currentTile.name}
-                  {currentTile.difficulty ? ` [Сложность: ${currentTile.difficulty}]` : ''}
-                </p>
-              </div>
-            )}
-
-            <HexMap
-              diceRoll={diceRoll}
-              onTileSelect={handleTileSelect}
-              onMove={handleMove}
-              revealedTiles={revealedTiles}
-              onAttackPlayer={(p) => setPvpTarget(p)}
-              playerRow={playerRow}
-              playerCol={playerCol}
-              defeatedTiles={defeatedTiles}
-            />
-
-            <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} logisticsBonus={skillBonuses.bonusMove} />
-            {diceUsed && !diceRoll && (
-              <p className="text-center text-[10px] text-muted-foreground">Вы уже бросали кубик в этот ход</p>
-            )}
-
-            <motion.button whileTap={{ scale: 0.97 }} onClick={handleEndTurn}
-              className="w-full rounded-xl bg-gradient-gold p-3 shadow-gold font-display text-sm font-bold text-primary-foreground flex items-center justify-center gap-2">
-              <Dice6 className="h-4 w-4" />
-              ЗАВЕРШИТЬ ХОД
-            </motion.button>
-          </motion.div>
+        {tab === 'tower' && (
+          <TowerView />
         )}
 
         {tab === 'army' && town && (
@@ -667,22 +396,6 @@ const Game = () => {
 
       {levelUpPending && (
         <LevelUpModal level={(profile?.hero_level || 1) + 1} choices={getRandomSkillChoices(skillsMap)} currentSkills={skillsMap} onChoose={handleLevelUpChoice} />
-      )}
-
-      {battleData && (
-        <BattleSystem
-          monsterPower={battleData.monsterPower} monsterName={battleData.monsterName}
-          goldReward={battleData.goldReward} expReward={battleData.expReward}
-          onClose={() => setBattleData(null)} onVictory={handleBattleVictory}
-        />
-      )}
-
-      {pvpTarget && <PvPBattle target={pvpTarget} onClose={() => setPvpTarget(null)} />}
-
-      {activeDungeon && (
-        <DungeonScreen dungeon={activeDungeon} onClose={() => setActiveDungeon(null)}
-          onComplete={() => { updateQuestProgress('kill'); setActiveDungeon(null); refreshProfile(); }}
-        />
       )}
 
       <DailyReward />
