@@ -223,6 +223,11 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
         await refreshArmy();
       }
     }
+    } catch (err) {
+      console.error('Battle error:', err);
+      toast.error('Ошибка в бою: ' + (err instanceof Error ? err.message : 'неизвестная ошибка'));
+      setBattleState('defeat');
+    }
   };
 
   return (
