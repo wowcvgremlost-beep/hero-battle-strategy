@@ -25,7 +25,6 @@ import EquipmentScreen from '@/components/game/EquipmentScreen';
 import DungeonScreen from '@/components/game/DungeonScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
-import { getArtifactById } from '@/data/artifacts';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
