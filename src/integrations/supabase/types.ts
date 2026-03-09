@@ -846,6 +846,7 @@ export type Database = {
           character_created: boolean
           character_name: string | null
           created_at: string
+          current_floor: number
           day: number
           gold: number
           hero_attack: number
@@ -869,6 +870,7 @@ export type Database = {
           character_created?: boolean
           character_name?: string | null
           created_at?: string
+          current_floor?: number
           day?: number
           gold?: number
           hero_attack?: number
@@ -892,6 +894,7 @@ export type Database = {
           character_created?: boolean
           character_name?: string | null
           created_at?: string
+          current_floor?: number
           day?: number
           gold?: number
           hero_attack?: number
@@ -908,6 +911,51 @@ export type Database = {
           map_row?: number
           town?: Database["public"]["Enums"]["game_town"] | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tower_kills: {
+        Row: {
+          floor_id: number
+          id: string
+          killed_at: string
+          monster_id: string
+          user_id: string
+        }
+        Insert: {
+          floor_id: number
+          id?: string
+          killed_at?: string
+          monster_id: string
+          user_id: string
+        }
+        Update: {
+          floor_id?: number
+          id?: string
+          killed_at?: string
+          monster_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tower_progress: {
+        Row: {
+          floor_id: number
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          floor_id?: number
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          floor_id?: number
+          id?: string
+          unlocked_at?: string
           user_id?: string
         }
         Relationships: []
