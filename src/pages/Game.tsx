@@ -514,6 +514,7 @@ const Game = () => {
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
             { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
             { id: 'trade' as GameTab, icon: Store, label: 'ЛАВКА' },
+            { id: 'market' as GameTab, icon: ArrowLeftRight, label: 'РЫНОК' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
             { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
