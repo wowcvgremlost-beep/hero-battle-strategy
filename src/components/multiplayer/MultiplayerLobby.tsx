@@ -319,6 +319,7 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
                   <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {room.player_count}/{room.max_players}</span>
+                  <span className="flex items-center gap-1">{room.status === 'waiting' ? '⏳ Ожидание' : '⚔️ Игра'}</span>
                   <span className="flex items-center gap-1"><Map className="h-3 w-3" /> {MAP_SIZES.find(m => m.value === room.map_size)?.label || room.map_size}</span>
                 </div>
               </div>
