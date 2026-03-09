@@ -38,6 +38,7 @@ const TILE_FILL: Record<string, string> = {
   monster: 'hsl(0 60% 50%)',
   npc: 'hsl(180 60% 50%)',
   artifact: 'hsl(270 70% 60%)',
+  dungeon: 'hsl(20 80% 35%)',
   empty: 'hsl(0 0% 90%)',
 };
 
