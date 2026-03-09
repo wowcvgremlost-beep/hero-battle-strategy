@@ -26,6 +26,7 @@ import DungeonScreen from '@/components/game/DungeonScreen';
 import TradeScreen from '@/components/game/TradeScreen';
 import GuildScreen from '@/components/game/GuildScreen';
 import PvPArena from '@/components/game/PvPArena';
+import DailyReward from '@/components/game/DailyReward';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
