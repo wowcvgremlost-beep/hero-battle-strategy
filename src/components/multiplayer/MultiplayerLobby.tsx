@@ -46,7 +46,7 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
     const { data: roomsData } = await supabase
       .from('multiplayer_rooms')
       .select('*')
-      .eq('status', 'waiting')
+      .in('status', ['waiting', 'playing'])
       .order('created_at', { ascending: false });
 
     if (roomsData) {
