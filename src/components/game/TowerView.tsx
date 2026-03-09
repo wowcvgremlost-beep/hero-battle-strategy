@@ -106,7 +106,7 @@ const TowerView = () => {
                     <span className="font-display text-sm font-bold text-foreground">
                       {floor.id}F — {floor.name}
                     </span>
-                    {floor.monsters.find(m => m.isBoss) && (
+                    {floor.boss && (
                       <Crown className="h-3 w-3 text-gold" />
                     )}
                   </div>
