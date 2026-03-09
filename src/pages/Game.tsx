@@ -21,7 +21,7 @@ import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
-import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
+import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
