@@ -628,6 +628,8 @@ const Game = () => {
           onComplete={() => { updateQuestProgress('kill'); setActiveDungeon(null); refreshProfile(); }}
         />
       )}
+
+      <DailyReward />
     </div>
   );
 };
