@@ -50,16 +50,8 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
       .order('created_at', { ascending: false });
 
     if (roomsData) {
-      const roomsWithCount = await Promise.all(
-        (roomsData as RoomData[]).map(async (room) => {
-          const { count } = await supabase
-            .from('multiplayer_players')
-            .select('*', { count: 'exact', head: true })
-            .eq('room_id', room.id);
-          return { ...room, player_count: count || 0 };
-        })
-      );
-      setRooms(roomsWithCount);
+      // player_count is now a column in the table, updated by trigger
+      setRooms((roomsData as (RoomData & { player_count: number })[]) || []);
     }
   };
 
