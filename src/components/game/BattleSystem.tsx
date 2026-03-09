@@ -81,13 +81,21 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
   const heroDefReduction = Math.min(0.7, heroDefense * 0.02); // up to 70% damage reduction
 
   const startBattle = async () => {
-    setBattleState('fighting');
-    const logs: string[] = [];
-    let crits = 0;
-    const stacks = buildStacks();
+    try {
+      setBattleState('fighting');
+      const logs: string[] = [];
+      let crits = 0;
+      const stacks = buildStacks();
 
-    logs.push(`⚔️ Бой начался против ${monsterName}!`);
-    logs.push(`Ваши стаки: ${stacks.map(s => `${s.unit_name}(${s.count})`).join(', ')}`);
+      if (stacks.length === 0) {
+        logs.push('❌ У вас нет войск для боя!');
+        setBattleLog(logs);
+        setBattleState('defeat');
+        return;
+      }
+
+      logs.push(`⚔️ Бой начался против ${monsterName}!`);
+      logs.push(`Ваши стаки: ${stacks.map(s => `${s.unit_name}(${s.count})`).join(', ')}`);
 
     // Monster HP is separate from damage output — HP pool is 3x monsterPower
     let monsterHP = monsterPower * 3;
@@ -214,6 +222,11 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
         }
         await refreshArmy();
       }
+    }
+    } catch (err) {
+      console.error('Battle error:', err);
+      toast.error('Ошибка в бою: ' + (err instanceof Error ? err.message : 'неизвестная ошибка'));
+      setBattleState('defeat');
     }
   };
 
