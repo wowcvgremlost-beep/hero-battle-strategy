@@ -219,7 +219,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'accessory',
     rarity: 'legendary',
     icon: '🏆',
-    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4, leadership: 15 },
+    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4, leadership: 100 },
   },
   // Leadership-focused artifacts
   {
