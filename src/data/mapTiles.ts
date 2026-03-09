@@ -1,4 +1,4 @@
-export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'artifact' | 'empty';
+export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'artifact' | 'dungeon' | 'empty';
 
 export interface MapTile {
   id: number;
@@ -10,6 +10,7 @@ export interface MapTile {
   passable: boolean;
   npcQuestId?: string;
   artifactRarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  dungeonId?: string;
 }
 
 export const MAP_COLS = 60;
@@ -196,6 +197,24 @@ function generateMap(): MapTile[] {
     }
   }
 
+  // Dungeon entrances
+  const dungeonSpawns: { pos: number; name: string; dungeonId: string }[] = [
+    { pos: 6 * MAP_COLS + 15, name: '🕳️ Пещеры Гоблинов', dungeonId: 'goblin_caves' },
+    { pos: 15 * MAP_COLS + 40, name: '⚰️ Склеп Нежити', dungeonId: 'undead_crypt' },
+    { pos: 30 * MAP_COLS + 20, name: '🌋 Логово Дракона', dungeonId: 'dragon_lair' },
+    { pos: 40 * MAP_COLS + 48, name: '🏚️ Крепость Демонов', dungeonId: 'demon_fortress' },
+    { pos: 25 * MAP_COLS + 30, name: '🌀 Храм Бездны', dungeonId: 'void_temple' },
+  ];
+  for (const spawn of dungeonSpawns) {
+    if (!specific[spawn.pos]) {
+      specific[spawn.pos] = {
+        type: 'dungeon' as TileType,
+        name: spawn.name,
+        dungeonId: spawn.dungeonId,
+      };
+    }
+  }
+
   // NPC quest givers
   const npcPositions: [number, string, string][] = [
     [3 * MAP_COLS + 10, 'Староста', 'kill_goblins'],
@@ -251,6 +270,7 @@ function generateMap(): MapTile[] {
         passable: s.type !== 'water' && s.type !== 'mountain',
         npcQuestId: s.npcQuestId,
         artifactRarity: s.artifactRarity,
+        dungeonId: s.dungeonId,
       });
     } else {
       tiles.push({

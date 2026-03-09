@@ -7,6 +7,7 @@ import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getTileById, getVisibleTiles, getRandomSpawnPosition, type MapTile } from '@/data/mapTiles';
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
 import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
+import { getDungeonById, type Dungeon } from '@/data/dungeons';
 import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
@@ -21,6 +22,7 @@ import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
+import DungeonScreen from '@/components/game/DungeonScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,6 +57,7 @@ const Game = () => {
     hero_level: number; hero_attack: number; hero_defense: number;
     hero_spellpower: number; gold: number;
   } | null>(null);
+  const [activeDungeon, setActiveDungeon] = useState<Dungeon | null>(null);
 
   // Convert heroSkills array to a map
   const skillsMap: Record<string, number> = {};
@@ -268,6 +271,15 @@ const Game = () => {
     } else if (tile.type === 'artifact' && tile.artifactRarity) {
       // Handle artifact discovery
       await handleArtifactDiscovery(tile.artifactRarity, tile.name);
+    } else if (tile.type === 'dungeon' && tile.dungeonId) {
+      const dungeon = getDungeonById(tile.dungeonId);
+      if (dungeon) {
+        if ((profile?.hero_level || 1) < dungeon.minHeroLevel) {
+          toast.error(`Требуется уровень ${dungeon.minHeroLevel} для входа в ${dungeon.name}`);
+        } else {
+          setActiveDungeon(dungeon);
+        }
+      }
     } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
       const newGold = (profile?.gold || 0) + tile.goldReward;
       await updateGold(newGold);
@@ -627,6 +639,18 @@ const Game = () => {
         <PvPBattle
           target={pvpTarget}
           onClose={() => setPvpTarget(null)}
+        />
+      )}
+
+      {activeDungeon && (
+        <DungeonScreen
+          dungeon={activeDungeon}
+          onClose={() => setActiveDungeon(null)}
+          onComplete={() => {
+            updateQuestProgress('kill');
+            setActiveDungeon(null);
+            refreshProfile();
+          }}
         />
       )}
     </div>
