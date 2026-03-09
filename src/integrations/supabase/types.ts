@@ -989,6 +989,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_multiplayer_round: {
+        Args: { _room_id: string }
+        Returns: undefined
+      }
       is_guild_leader: {
         Args: { _guild_id: string; _user_id: string }
         Returns: boolean
