@@ -54,6 +54,7 @@ const TILE_STROKE: Record<string, string> = {
   monster: 'hsl(0 50% 35%)',
   npc: 'hsl(180 50% 35%)',
   artifact: 'hsl(270 60% 45%)',
+  dungeon: 'hsl(20 70% 25%)',
   empty: 'hsl(0 0% 75%)',
 };
 
