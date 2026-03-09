@@ -238,7 +238,7 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
                 </div>
               )}
               <div className="text-[10px] text-muted-foreground mb-1.5">
-                Прирост: {u.growth}/нед. | {u.movement} | {u.status}
+                Прирост: {u.growth}/нед. | {u.movement} | {u.status} | 👑 {UNIT_LEADERSHIP_COST[u.level] || 5}/ед.
               </div>
               
               {unlocked ? (
