@@ -51,6 +51,12 @@ const Game = () => {
   const [levelUpPending, setLevelUpPending] = useState(false);
   const [pvpTarget, setPvpTarget] = useState<any>(null);
   const [activeDungeon, setActiveDungeon] = useState<Dungeon | null>(null);
+  const [questLeadershipBonus, setQuestLeadershipBonus] = useState<number>(() => {
+    if (!user) return 0;
+    try { const s = localStorage.getItem(`leadership_bonus_${user.id}`); if (s) return parseInt(s); } catch {}
+    return 0;
+  });
+  const [equippedArtifacts, setEquippedArtifacts] = useState<any[]>([]);
 
   const playerRow = profile?.map_row ?? 0;
   const playerCol = profile?.map_col ?? 0;
