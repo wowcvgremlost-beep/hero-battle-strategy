@@ -8,7 +8,7 @@ import { getTileAt, getVisibleTiles, getRandomSpawnPosition, type MapTile } from
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
 import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
 import { getDungeonById, type Dungeon } from '@/data/dungeons';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package, Store } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
