@@ -219,7 +219,26 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'accessory',
     rarity: 'legendary',
     icon: '🏆',
-    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4 },
+    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4, leadership: 15 },
+  },
+  // Leadership-focused artifacts
+  {
+    id: 'acc_banner_command',
+    name: 'Знамя Командира',
+    description: 'Под этим знаменем армии шли за своим полководцем',
+    slot: 'accessory',
+    rarity: 'uncommon',
+    icon: '🚩',
+    bonuses: { leadership: 10 },
+  },
+  {
+    id: 'helm_warlord',
+    name: 'Шлем Полководца',
+    description: 'Внушает уважение и подчинение',
+    slot: 'helmet',
+    rarity: 'rare',
+    icon: '🎖️',
+    bonuses: { attack: 1, leadership: 12 },
   },
 ];
 
