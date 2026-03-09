@@ -223,7 +223,9 @@ export type Database = {
           hero_spellpower: number
           id: string
           mana: number
+          map_col: number
           map_position: number
+          map_row: number
           town: Database["public"]["Enums"]["game_town"] | null
           updated_at: string
           user_id: string
@@ -244,7 +246,9 @@ export type Database = {
           hero_spellpower?: number
           id?: string
           mana?: number
+          map_col?: number
           map_position?: number
+          map_row?: number
           town?: Database["public"]["Enums"]["game_town"] | null
           updated_at?: string
           user_id: string
@@ -265,7 +269,9 @@ export type Database = {
           hero_spellpower?: number
           id?: string
           mana?: number
+          map_col?: number
           map_position?: number
+          map_row?: number
           town?: Database["public"]["Enums"]["game_town"] | null
           updated_at?: string
           user_id?: string
