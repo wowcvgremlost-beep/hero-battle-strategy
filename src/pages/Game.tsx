@@ -569,7 +569,13 @@ const Game = () => {
         )}
         {tab === 'quests' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <QuestScreen />
+            <QuestScreen onLeadershipReward={(amount) => {
+              setQuestLeadershipBonus(prev => {
+                const next = prev + amount;
+                if (user) localStorage.setItem(`leadership_bonus_${user.id}`, String(next));
+                return next;
+              });
+            }} />
           </motion.div>
         )}
         {tab === 'equipment' && (
