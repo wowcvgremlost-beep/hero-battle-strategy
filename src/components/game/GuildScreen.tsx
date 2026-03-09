@@ -68,6 +68,10 @@ const GuildScreen = () => {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newIcon, setNewIcon] = useState('⚔️');
+  const [chatMessages, setChatMessages] = useState<{ id: string; user_id: string; message: string; created_at: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const town = TOWNS.find(t => t.id === profile?.town);
   const skillsMap: Record<string, number> = {};
