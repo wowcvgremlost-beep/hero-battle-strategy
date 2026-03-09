@@ -440,15 +440,24 @@ const Game = () => {
         <div className="flex items-center gap-3 mt-1 pb-1">
           <div className="flex items-center gap-1">
             <Swords className="h-3 w-3 text-crimson" />
-            <span className="text-[10px] text-foreground">{profile?.hero_attack}</span>
+            <span className="text-[10px] text-foreground">
+              {profile?.hero_attack}
+              {skillBonuses.bonusAttack > 0 && <span className="text-emerald">+{skillBonuses.bonusAttack}</span>}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Shield className="h-3 w-3 text-gold" />
-            <span className="text-[10px] text-foreground">{profile?.hero_defense}</span>
+            <span className="text-[10px] text-foreground">
+              {profile?.hero_defense}
+              {skillBonuses.bonusDefense > 0 && <span className="text-emerald">+{skillBonuses.bonusDefense}</span>}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Sparkles className="h-3 w-3 text-arcane" />
-            <span className="text-[10px] text-foreground">{profile?.hero_spellpower}</span>
+            <span className="text-[10px] text-foreground">
+              {profile?.hero_spellpower}
+              {skillBonuses.bonusSpellpower > 0 && <span className="text-emerald">+{skillBonuses.bonusSpellpower}</span>}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <BookOpen className="h-3 w-3 text-emerald" />
