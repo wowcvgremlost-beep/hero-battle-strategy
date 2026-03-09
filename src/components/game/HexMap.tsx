@@ -70,6 +70,7 @@ const TILE_ICONS: Record<string, string> = {
   monster: '💀',
   npc: '❓',
   artifact: '🎁',
+  dungeon: '🚪',
   empty: '',
 };
 

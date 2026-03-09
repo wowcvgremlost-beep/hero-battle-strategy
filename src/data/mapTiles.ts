@@ -270,6 +270,7 @@ function generateMap(): MapTile[] {
         passable: s.type !== 'water' && s.type !== 'mountain',
         npcQuestId: s.npcQuestId,
         artifactRarity: s.artifactRarity,
+        dungeonId: s.dungeonId,
       });
     } else {
       tiles.push({
