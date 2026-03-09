@@ -8,7 +8,7 @@ import { getTileAt, getVisibleTiles, getRandomSpawnPosition, type MapTile } from
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
 import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
 import { getDungeonById, type Dungeon } from '@/data/dungeons';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package, Store, Flame, Award } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package, Store, Flame, Award, CalendarDays } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -28,13 +28,14 @@ import GuildScreen from '@/components/game/GuildScreen';
 import PvPArena from '@/components/game/PvPArena';
 import DailyReward from '@/components/game/DailyReward';
 import AchievementsScreen from '@/components/game/AchievementsScreen';
+import EventsScreen from '@/components/game/EventsScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'guild' | 'pvp' | 'achievements';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'guild' | 'pvp' | 'achievements' | 'events';
 
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
   let growth = baseGrowth;
@@ -494,6 +495,7 @@ const Game = () => {
             { id: 'pvp' as GameTab, icon: Flame, label: 'PVP' },
             { id: 'guild' as GameTab, icon: Shield, label: 'ГИЛЬД' },
             { id: 'achievements' as GameTab, icon: Award, label: 'ДОСТ' },
+            { id: 'events' as GameTab, icon: CalendarDays, label: 'ИВЕНТ' },
             { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
           ]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -612,6 +614,11 @@ const Game = () => {
         {tab === 'achievements' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <AchievementsScreen />
+          </motion.div>
+        )}
+        {tab === 'events' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <EventsScreen />
           </motion.div>
         )}
       </div>
