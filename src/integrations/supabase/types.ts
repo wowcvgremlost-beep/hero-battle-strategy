@@ -1001,6 +1001,10 @@ export type Database = {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
       }
+      join_multiplayer_room: {
+        Args: { _password?: string; _room_code: string }
+        Returns: Json
+      }
       recompute_room_player_count: {
         Args: { _room_id: string }
         Returns: undefined
