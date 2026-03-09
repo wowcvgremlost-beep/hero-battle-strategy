@@ -594,6 +594,11 @@ const Game = () => {
             <TradeScreen />
           </motion.div>
         )}
+        {tab === 'guild' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <GuildScreen />
+          </motion.div>
+        )}
       </div>
 
       {levelUpPending && (
