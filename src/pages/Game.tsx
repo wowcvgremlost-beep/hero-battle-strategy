@@ -616,6 +616,11 @@ const Game = () => {
             <AchievementsScreen />
           </motion.div>
         )}
+        {tab === 'events' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <EventsScreen />
+          </motion.div>
+        )}
       </div>
 
       {levelUpPending && (
