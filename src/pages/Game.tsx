@@ -24,6 +24,7 @@ import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
 import DungeonScreen from '@/components/game/DungeonScreen';
 import TradeScreen from '@/components/game/TradeScreen';
+import GuildScreen from '@/components/game/GuildScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
