@@ -230,6 +230,8 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
     }
   };
 
+  const hasArmy = army.some(a => a.count > 0);
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
