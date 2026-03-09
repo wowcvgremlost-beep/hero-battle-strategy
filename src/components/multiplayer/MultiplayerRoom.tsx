@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TOWNS, type TownId } from '@/data/towns';
 import { HEROES } from '@/data/heroes';
-import { Users, LogOut, Check, Crown, Swords, Shield, Sparkles, Copy } from 'lucide-react';
+import { Users, LogOut, Check, Crown, Swords, Shield, Sparkles, Copy, Trash2 } from 'lucide-react';
 import type { RoomData, PlayerData } from '@/pages/Multiplayer';
 
 interface Props {
@@ -101,6 +101,10 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
   };
 
   const handleStartGame = async () => {
+    if (allPlayers.length !== room.max_players) {
+      toast.error('Комната ещё не заполнена');
+      return;
+    }
     const readyPlayers = allPlayers.filter(p => p.is_ready);
     if (readyPlayers.length < allPlayers.length) {
       toast.error('Не все игроки готовы');
@@ -133,6 +137,42 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
             }} className="text-muted-foreground hover:text-foreground">
               <Copy className="h-4 w-4" />
             </button>
+            {isCreator && (
+              <button
+                onClick={async () => {
+                  if (allPlayers.length > 1) {
+                    toast.error('Нельзя удалить комнату: в ней есть игроки');
+                    return;
+                  }
+                  if (!confirm('Удалить комнату?')) return;
+
+                  const { error: leaveErr } = await supabase
+                    .from('multiplayer_players')
+                    .delete()
+                    .eq('id', myPlayer.id);
+                  if (leaveErr) {
+                    toast.error(leaveErr.message);
+                    return;
+                  }
+
+                  const { error: delErr } = await supabase
+                    .from('multiplayer_rooms')
+                    .delete()
+                    .eq('id', room.id);
+                  if (delErr) {
+                    toast.error(delErr.message);
+                    return;
+                  }
+
+                  toast.success('Комната удалена');
+                  onLeave();
+                }}
+                className="text-muted-foreground hover:text-destructive"
+                title={allPlayers.length > 1 ? 'Нельзя удалить: есть другие игроки' : 'Удалить комнату'}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
             <button onClick={onLeave} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
             </button>
@@ -240,7 +280,7 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
             <p className="font-display text-sm font-bold text-foreground">Вы готовы!</p>
             <p className="text-xs text-muted-foreground">Ожидание остальных игроков...</p>
 
-            {isCreator && allReady && allPlayers.length >= 1 && (
+            {isCreator && allReady && allPlayers.length === room.max_players && (
               <motion.button whileTap={{ scale: 0.97 }} onClick={handleStartGame}
                 className="w-full rounded-xl bg-gradient-crimson p-4 font-display text-sm font-bold text-accent-foreground shadow-crimson">
                 ⚔️ НАЧАТЬ ИГРУ!

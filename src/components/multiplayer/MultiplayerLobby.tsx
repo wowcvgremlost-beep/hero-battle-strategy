@@ -46,7 +46,7 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
     const { data: roomsData } = await supabase
       .from('multiplayer_rooms')
       .select('*')
-      .eq('status', 'waiting')
+      .in('status', ['waiting', 'playing'])
       .order('created_at', { ascending: false });
 
     if (roomsData) {
@@ -319,14 +319,15 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
                   <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {room.player_count}/{room.max_players}</span>
+                  <span className="flex items-center gap-1">{room.status === 'waiting' ? '⏳ Ожидание' : '⚔️ Игра'}</span>
                   <span className="flex items-center gap-1"><Map className="h-3 w-3" /> {MAP_SIZES.find(m => m.value === room.map_size)?.label || room.map_size}</span>
                 </div>
               </div>
               <motion.button whileTap={{ scale: 0.95 }}
                 onClick={() => { setJoinCode(room.room_code); setShowJoin(true); setShowCreate(false); }}
-                disabled={room.player_count >= room.max_players}
+                disabled={room.status !== 'waiting' || room.player_count >= room.max_players}
                 className="rounded-lg bg-gradient-crimson px-4 py-2 font-display text-xs font-bold text-accent-foreground disabled:opacity-40">
-                ВОЙТИ
+                {room.status === 'waiting' ? 'ВОЙТИ' : 'ИГРА'}
               </motion.button>
             </div>
           </motion.div>

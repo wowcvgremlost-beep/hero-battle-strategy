@@ -113,13 +113,13 @@ const Multiplayer = () => {
         if (otherPlayersError) throw otherPlayersError;
 
         if (!otherPlayers || otherPlayers.length === 0) {
-          // No one else in the room → delete it
-          const { error: deleteRoomError } = await supabase
-            .from('multiplayer_rooms')
+          // No one else in the room → keep the room so creator can re-join later
+          const { error: leaveError } = await supabase
+            .from('multiplayer_players')
             .delete()
-            .eq('id', currentRoom.id);
-          if (deleteRoomError) throw deleteRoomError;
-          toast.success('Комната удалена');
+            .eq('id', myPlayer.id);
+          if (leaveError) throw leaveError;
+          toast.success('Вы покинули комнату');
         } else {
           // Transfer creator role to the lowest player_number so the room can continue
           const nextCreatorId = (otherPlayers[0] as any).user_id as string;
