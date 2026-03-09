@@ -76,8 +76,14 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
 
   const hireUnit = async (unitName: string, costPerUnit: number, amount: number) => {
     if (!user || !profile || buying || amount <= 0) return;
+    const totalUnits = army.reduce((s, a) => s + a.count, 0);
+    const capacityLeft = armyCapacity - totalUnits;
+    if (capacityLeft <= 0) {
+      toast.error('Армия переполнена! Повысьте Лидерство.');
+      return;
+    }
     const available = getAvailable(unitName);
-    const actualAmount = Math.min(amount, available);
+    const actualAmount = Math.min(amount, available, capacityLeft);
     if (actualAmount <= 0) {
       toast.error('Нет доступных существ!');
       return;
