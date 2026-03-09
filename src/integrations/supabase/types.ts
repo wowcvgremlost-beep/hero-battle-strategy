@@ -53,6 +53,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_rewards: {
+        Row: {
+          created_at: string
+          id: string
+          last_claim_date: string
+          streak: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_claim_date?: string
+          streak?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_claim_date?: string
+          streak?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       guild_members: {
         Row: {
           guild_id: string
