@@ -43,7 +43,7 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
   const heroDefense = (profile?.hero_defense || 1) + bonuses.bonusDefense;
   const luckChance = bonuses.luckChance;
 
-  // Build army stacks
+  // Build army stacks — hero stats apply as % multiplier, not flat per-unit
   const buildStacks = (): ArmyStack[] => {
     if (!town) return [];
     return army
@@ -51,7 +51,6 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
       .map(a => {
         const unitData = town.units.find(u => u.name === a.unit_name);
         if (!unitData) return null;
-        // Parse damage string like "2-3" to avg
         const dmgParts = unitData.damage.split('-').map(Number);
         const avgDmg = dmgParts.length === 2 ? (dmgParts[0] + dmgParts[1]) / 2 : dmgParts[0] || 1;
         return {
@@ -60,14 +59,15 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
           hp: a.count * unitData.health,
           maxHpPerUnit: unitData.health,
           level: unitData.level,
-          attack: unitData.attack + heroAttack,
-          defense: unitData.defense + heroDefense,
-          damage: avgDmg + heroAttack * 0.5,
+          attack: unitData.attack,
+          defense: unitData.defense,
+          damage: avgDmg,
         };
       })
       .filter(Boolean) as ArmyStack[];
   };
 
+  // Army power for display
   const totalArmyPower = army.reduce((total, unit) => {
     const unitData = town?.units.find(u => u.name === unit.unit_name);
     if (unitData) return total + unit.count * (unitData.attack + unitData.defense + Math.floor(unitData.value / 10));
@@ -75,6 +75,10 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
   }, 0);
 
   const playerPower = Math.floor(heroAttack * 5 + heroDefense * 5 + totalArmyPower);
+
+  // Hero multipliers for battle
+  const heroAtkMultiplier = 1 + heroAttack * 0.03; // +3% damage per hero attack point
+  const heroDefReduction = Math.min(0.7, heroDefense * 0.02); // up to 70% damage reduction
 
   const startBattle = async () => {
     setBattleState('fighting');
@@ -85,16 +89,19 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
     logs.push(`⚔️ Бой начался против ${monsterName}!`);
     logs.push(`Ваши стаки: ${stacks.map(s => `${s.unit_name}(${s.count})`).join(', ')}`);
 
-    let monsterHP = monsterPower;
+    // Monster HP is separate from damage output — HP pool is 3x monsterPower
+    let monsterHP = monsterPower * 3;
     let round = 1;
 
     while (monsterHP > 0 && stacks.some(s => s.count > 0) && round <= 12) {
-      // Each stack attacks
+      // Each stack attacks — damage = count * baseDmg * heroMultiplier
       for (const stack of stacks) {
         if (stack.count <= 0 || monsterHP <= 0) continue;
         const isCrit = Math.random() * 100 < luckChance;
         const critMul = isCrit ? 2 : 1;
-        const stackDmg = Math.floor(stack.count * stack.damage * (1 + heroAttack * 0.05) * (0.85 + Math.random() * 0.3) * critMul);
+        const stackDmg = Math.floor(
+          stack.count * stack.damage * heroAtkMultiplier * (0.85 + Math.random() * 0.3) * critMul
+        );
         monsterHP -= stackDmg;
         if (isCrit) {
           crits++;
