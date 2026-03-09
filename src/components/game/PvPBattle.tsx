@@ -55,18 +55,22 @@ const PvPBattle = ({ target, onClose }: PvPBattleProps) => {
     logs.push(`⚔️ Атака на ${target.character_name}!`);
     logs.push(`Ваша сила: ${myPower} | Оценка противника: ~${enemyEstimate}`);
 
-    let myHP = myPower;
-    let enemyHP = enemyEstimate;
+    // Simulate with HP pools
+    let myHP = myPower * 3;
+    let enemyHP = enemyEstimate * 3;
     let round = 1;
 
     while (myHP > 0 && enemyHP > 0 && round <= 10) {
-      const myDmg = Math.floor(myAttack * (0.7 + Math.random() * 0.6));
-      enemyHP -= myDmg;
-      logs.push(`Раунд ${round}: Вы наносите ${myDmg} урона.`);
+      // My attack — scaled by hero attack multiplier
+      const myDmg = Math.floor(myArmyPower * 0.15 * heroAtkMul * (0.85 + Math.random() * 0.3));
+      enemyHP -= Math.max(1, myDmg);
+      logs.push(`Раунд ${round}: Вы наносите ${Math.max(1, myDmg)} урона.`);
 
       if (enemyHP <= 0) break;
 
-      const eDmg = Math.max(1, Math.floor(enemyBasePower * (0.7 + Math.random() * 0.6) - myDefense * 0.1));
+      // Enemy attack — reduced by hero defense
+      const rawEDmg = Math.floor(enemyEstimate * 0.15 * (0.85 + Math.random() * 0.3));
+      const eDmg = Math.max(1, Math.floor(rawEDmg * (1 - heroDefReduction)));
       myHP -= eDmg;
       logs.push(`${target.character_name} наносит ${eDmg} урона.`);
       round++;
