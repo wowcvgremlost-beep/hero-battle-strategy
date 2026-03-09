@@ -13,6 +13,7 @@ export interface Artifact {
     defense?: number;
     spellpower?: number;
     knowledge?: number;
+    leadership?: number;
   };
 }
 
@@ -77,7 +78,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'helmet',
     rarity: 'legendary',
     icon: '✨',
-    bonuses: { attack: 3, defense: 2, spellpower: 2, knowledge: 2 },
+    bonuses: { attack: 3, defense: 2, spellpower: 2, knowledge: 2, leadership: 10 },
   },
 
   // Armor
@@ -115,7 +116,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'epic',
     icon: '🏛️',
-    bonuses: { defense: 4, attack: 2 },
+    bonuses: { defense: 4, attack: 2, leadership: 5 },
   },
   {
     id: 'armor_invincible',
@@ -124,7 +125,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'legendary',
     icon: '⚜️',
-    bonuses: { defense: 6, attack: 2, spellpower: 1 },
+    bonuses: { defense: 6, attack: 2, spellpower: 1, leadership: 8 },
   },
 
   // Weapons
@@ -218,7 +219,26 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'accessory',
     rarity: 'legendary',
     icon: '🏆',
-    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4 },
+    bonuses: { attack: 3, defense: 3, spellpower: 4, knowledge: 4, leadership: 15 },
+  },
+  // Leadership-focused artifacts
+  {
+    id: 'acc_banner_command',
+    name: 'Знамя Командира',
+    description: 'Под этим знаменем армии шли за своим полководцем',
+    slot: 'accessory',
+    rarity: 'uncommon',
+    icon: '🚩',
+    bonuses: { leadership: 10 },
+  },
+  {
+    id: 'helm_warlord',
+    name: 'Шлем Полководца',
+    description: 'Внушает уважение и подчинение',
+    slot: 'helmet',
+    rarity: 'rare',
+    icon: '🎖️',
+    bonuses: { attack: 1, leadership: 12 },
   },
 ];
 

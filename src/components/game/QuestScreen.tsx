@@ -16,9 +16,10 @@ interface PlayerQuest {
 
 interface QuestScreenProps {
   onQuestsChange?: () => void;
+  onLeadershipReward?: (amount: number) => void;
 }
 
-const QuestScreen = ({ onQuestsChange }: QuestScreenProps) => {
+const QuestScreen = ({ onQuestsChange, onLeadershipReward }: QuestScreenProps) => {
   const { user, profile, updateGold, updateHeroStats, refreshProfile } = useAuth();
   const [quests, setQuests] = useState<PlayerQuest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,12 @@ const QuestScreen = ({ onQuestsChange }: QuestScreenProps) => {
       await updateHeroStats({ hero_experience: newExp });
     }
 
-    toast.success(`Награда получена! +${quest.goldReward}💰 +${quest.expReward}✨`);
+    let rewardMsg = `Награда получена! +${quest.goldReward}💰 +${quest.expReward}✨`;
+    if (quest.leadershipReward) {
+      onLeadershipReward?.(quest.leadershipReward);
+      rewardMsg += ` +${quest.leadershipReward}👑 Лидерство`;
+    }
+    toast.success(rewardMsg);
     await fetchQuests();
     onQuestsChange?.();
   };
@@ -133,6 +139,7 @@ const QuestScreen = ({ onQuestsChange }: QuestScreenProps) => {
                       <div className="flex items-center gap-3 mt-2 text-[10px]">
                         <span className="text-gold flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{def.goldReward}</span>
                         <span className="text-arcane flex items-center gap-0.5"><Sparkles className="h-2.5 w-2.5" />{def.expReward}</span>
+                        {def.leadershipReward && <span className="text-foreground flex items-center gap-0.5">👑 +{def.leadershipReward}</span>}
                       </div>
                     </div>
                   </div>
@@ -179,6 +186,7 @@ const QuestScreen = ({ onQuestsChange }: QuestScreenProps) => {
                 <div className="flex items-center gap-3 mt-1.5 text-[10px]">
                   <span className="text-gold flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{quest.goldReward}</span>
                   <span className="text-arcane flex items-center gap-0.5"><Sparkles className="h-2.5 w-2.5" />{quest.expReward}</span>
+                  {quest.leadershipReward && <span className="text-foreground flex items-center gap-0.5">👑 +{quest.leadershipReward}</span>}
                 </div>
               </div>
             </div>

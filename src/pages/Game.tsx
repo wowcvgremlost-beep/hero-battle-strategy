@@ -23,8 +23,8 @@ import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
 import DungeonScreen from '@/components/game/DungeonScreen';
-import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses } from '@/data/skills';
-import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
+import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
+import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
@@ -50,6 +50,12 @@ const Game = () => {
   const [levelUpPending, setLevelUpPending] = useState(false);
   const [pvpTarget, setPvpTarget] = useState<any>(null);
   const [activeDungeon, setActiveDungeon] = useState<Dungeon | null>(null);
+  const [questLeadershipBonus, setQuestLeadershipBonus] = useState<number>(() => {
+    if (!user) return 0;
+    try { const s = localStorage.getItem(`leadership_bonus_${user.id}`); if (s) return parseInt(s); } catch {}
+    return 0;
+  });
+  const [equippedArtifacts, setEquippedArtifacts] = useState<any[]>([]);
 
   const playerRow = profile?.map_row ?? 0;
   const playerCol = profile?.map_col ?? 0;
@@ -57,6 +63,20 @@ const Game = () => {
   const skillsMap: Record<string, number> = {};
   heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
   const skillBonuses = getSkillBonuses(skillsMap);
+
+  // Fetch equipped artifacts for leadership bonus
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('player_artifacts').select('artifact_id').eq('user_id', user.id).eq('is_equipped', true)
+      .then(({ data }) => setEquippedArtifacts(data || []));
+  }, [user]);
+
+  const artifactLeadershipBonus = equippedArtifacts.reduce((sum, a) => {
+    const art = getArtifactById(a.artifact_id);
+    return sum + (art?.bonuses.leadership || 0);
+  }, 0);
+
+  const totalArmyCapacity = skillBonuses.armyCapacity + artifactLeadershipBonus + questLeadershipBonus;
 
   const [creaturePool, setCreaturePool] = useState<Record<string, number>>(() => {
     if (!user) return {};
@@ -334,10 +354,12 @@ const Game = () => {
     localStorage.removeItem(`pool_${user.id}`);
     localStorage.removeItem(`poolWeek_${user.id}`);
     localStorage.removeItem(`defeated_${user.id}`);
+    localStorage.removeItem(`leadership_bonus_${user.id}`);
     setRevealedTiles(new Set());
     setDefeatedTiles(new Set());
     setCreaturePool({});
     setPoolWeek(0);
+    setQuestLeadershipBonus(0);
     setShowDeleteConfirm(false);
     await refreshProfile();
     await refreshBuildings();
@@ -524,7 +546,7 @@ const Game = () => {
 
         {tab === 'army' && town && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <ArmyScreen townId={town.id as TownId} creaturePool={creaturePool} onHire={decrementPool} hasFort={hasFort} />
+            <ArmyScreen townId={town.id as TownId} creaturePool={creaturePool} onHire={decrementPool} hasFort={hasFort} armyCapacity={totalArmyCapacity} />
           </motion.div>
         )}
         {tab === 'buildings' && town && (
@@ -549,7 +571,13 @@ const Game = () => {
         )}
         {tab === 'quests' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <QuestScreen />
+            <QuestScreen onLeadershipReward={(amount) => {
+              setQuestLeadershipBonus(prev => {
+                const next = prev + amount;
+                if (user) localStorage.setItem(`leadership_bonus_${user.id}`, String(next));
+                return next;
+              });
+            }} />
           </motion.div>
         )}
         {tab === 'equipment' && (

@@ -12,9 +12,10 @@ interface ArmyScreenProps {
   creaturePool: Record<string, number>;
   onHire: (unitName: string, amount?: number) => void;
   hasFort: boolean;
+  armyCapacity: number;
 }
 
-const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) => {
+const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: ArmyScreenProps) => {
   const { user, profile, army, buildings, refreshArmy, updateGold } = useAuth();
   const town = TOWNS.find(t => t.id === townId);
   const [buying, setBuying] = useState(false);
@@ -75,8 +76,14 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
 
   const hireUnit = async (unitName: string, costPerUnit: number, amount: number) => {
     if (!user || !profile || buying || amount <= 0) return;
+    const totalUnits = army.reduce((s, a) => s + a.count, 0);
+    const capacityLeft = armyCapacity - totalUnits;
+    if (capacityLeft <= 0) {
+      toast.error('Армия переполнена! Повысьте Лидерство.');
+      return;
+    }
     const available = getAvailable(unitName);
-    const actualAmount = Math.min(amount, available);
+    const actualAmount = Math.min(amount, available, capacityLeft);
     if (actualAmount <= 0) {
       toast.error('Нет доступных существ!');
       return;
@@ -132,6 +139,9 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
     return sum + (unitData ? unit.count * unitData.value : 0);
   }, 0);
 
+  const totalUnits = army.reduce((s, a) => s + a.count, 0);
+  const capacityLeft = armyCapacity - totalUnits;
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-gold/20 bg-gradient-card p-3 flex items-center justify-between">
@@ -141,9 +151,13 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) 
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground uppercase">Юнитов</p>
-          <p className="font-display text-lg font-bold text-foreground">
-            {army.reduce((s, a) => s + a.count, 0)}
+          <p className={`font-display text-lg font-bold ${totalUnits >= armyCapacity ? 'text-crimson' : 'text-foreground'}`}>
+            {totalUnits} / {armyCapacity}
           </p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase">👑 Лидерство</p>
+          <p className="font-display text-lg font-bold text-arcane">{armyCapacity}</p>
         </div>
       </div>
 

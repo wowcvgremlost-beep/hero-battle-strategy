@@ -10,6 +10,7 @@ export interface QuestDef {
   target: number; // how many to complete
   goldReward: number;
   expReward: number;
+  leadershipReward?: number; // bonus to permanent leadership
   npcName: string;
   npcEmoji: string;
   minLevel: number; // minimum hero level to see this quest
@@ -21,20 +22,20 @@ export const QUESTS: QuestDef[] = [
   { id: 'collect_gold_1', name: 'Казна деревни', description: 'Соберите 3000 золота', type: 'collect_gold', target: 3000, goldReward: 800, expReward: 50, npcName: 'Купец', npcEmoji: '🧔', minLevel: 1 },
   { id: 'explore_tiles', name: 'Разведчик', description: 'Исследуйте 20 клеток карты', type: 'explore', target: 20, goldReward: 400, expReward: 100, npcName: 'Следопыт', npcEmoji: '🏹', minLevel: 1 },
   { id: 'build_first', name: 'Строитель', description: 'Постройте 3 здания в городе', type: 'build', target: 3, goldReward: 600, expReward: 60, npcName: 'Архитектор', npcEmoji: '👷', minLevel: 1 },
-  { id: 'hire_army', name: 'Командир', description: 'Наймите 10 юнитов', type: 'hire', target: 10, goldReward: 500, expReward: 70, npcName: 'Генерал', npcEmoji: '⚔️', minLevel: 1 },
+  { id: 'hire_army', name: 'Командир', description: 'Наймите 10 юнитов', type: 'hire', target: 10, goldReward: 500, expReward: 70, leadershipReward: 5, npcName: 'Генерал', npcEmoji: '⚔️', minLevel: 1 },
 
   // Mid-game quests
   { id: 'kill_strong', name: 'Охотник за монстрами', description: 'Победите 5 монстров', type: 'kill', target: 5, goldReward: 1500, expReward: 200, npcName: 'Охотник', npcEmoji: '🗡️', minLevel: 3 },
   { id: 'collect_gold_2', name: 'Богатство королевства', description: 'Накопите 10000 золота', type: 'collect_gold', target: 10000, goldReward: 2000, expReward: 150, npcName: 'Банкир', npcEmoji: '💰', minLevel: 3 },
   { id: 'explore_far', name: 'Картограф', description: 'Исследуйте 50 клеток', type: 'explore', target: 50, goldReward: 1000, expReward: 250, npcName: 'Мудрец', npcEmoji: '🧙', minLevel: 3 },
   { id: 'build_many', name: 'Великий строитель', description: 'Постройте 8 зданий', type: 'build', target: 8, goldReward: 1500, expReward: 180, npcName: 'Мастер', npcEmoji: '🔨', minLevel: 3 },
-  { id: 'hire_legion', name: 'Легион', description: 'Наймите 30 юнитов', type: 'hire', target: 30, goldReward: 1200, expReward: 200, npcName: 'Маршал', npcEmoji: '🛡️', minLevel: 3 },
+  { id: 'hire_legion', name: 'Легион', description: 'Наймите 30 юнитов', type: 'hire', target: 30, goldReward: 1200, expReward: 200, leadershipReward: 10, npcName: 'Маршал', npcEmoji: '🛡️', minLevel: 3 },
 
   // Late-game quests
-  { id: 'kill_bosses', name: 'Истребитель', description: 'Победите 10 монстров', type: 'kill', target: 10, goldReward: 3000, expReward: 500, npcName: 'Оракул', npcEmoji: '🔮', minLevel: 5 },
+  { id: 'kill_bosses', name: 'Истребитель', description: 'Победите 10 монстров', type: 'kill', target: 10, goldReward: 3000, expReward: 500, leadershipReward: 15, npcName: 'Оракул', npcEmoji: '🔮', minLevel: 5 },
   { id: 'collect_gold_3', name: 'Сокровище дракона', description: 'Накопите 25000 золота', type: 'collect_gold', target: 25000, goldReward: 5000, expReward: 400, npcName: 'Дракон', npcEmoji: '🐉', minLevel: 5 },
   { id: 'explore_world', name: 'Первооткрыватель', description: 'Исследуйте 100 клеток', type: 'explore', target: 100, goldReward: 2500, expReward: 600, npcName: 'Странник', npcEmoji: '🌍', minLevel: 5 },
-  { id: 'hire_horde', name: 'Орда', description: 'Наймите 60 юнитов', type: 'hire', target: 60, goldReward: 3000, expReward: 500, npcName: 'Полководец', npcEmoji: '👑', minLevel: 5 },
+  { id: 'hire_horde', name: 'Орда', description: 'Наймите 60 юнитов', type: 'hire', target: 60, goldReward: 3000, expReward: 500, leadershipReward: 20, npcName: 'Полководец', npcEmoji: '👑', minLevel: 5 },
 ];
 
 // NPC tile positions on map (deterministic based on quest index)
