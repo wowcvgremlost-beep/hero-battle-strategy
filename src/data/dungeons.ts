@@ -56,10 +56,10 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 5,
     bossArtifactRarity: 'rare',
     floors: [
-      { level: 1, monsterName: 'Огненные элементали', monsterIcon: '🔥', monsterPower: 200, goldReward: 600, expReward: 100, isBoss: false },
-      { level: 2, monsterName: 'Драконлинги', monsterIcon: '🦎', monsterPower: 350, goldReward: 900, expReward: 180, isBoss: false },
-      { level: 3, monsterName: 'Стража дракона', monsterIcon: '⚔️', monsterPower: 500, goldReward: 1200, expReward: 250, isBoss: false },
-      { level: 4, monsterName: 'Красный дракон', monsterIcon: '🐉', monsterPower: 800, goldReward: 3000, expReward: 500, isBoss: true },
+      { level: 1, monsterName: 'Огненные элементали', monsterIcon: '🔥', monsterPower: 100, goldReward: 800, expReward: 150, isBoss: false },
+      { level: 2, monsterName: 'Драконлинги', monsterIcon: '🦎', monsterPower: 170, goldReward: 1200, expReward: 250, isBoss: false },
+      { level: 3, monsterName: 'Стража дракона', monsterIcon: '⚔️', monsterPower: 260, goldReward: 1800, expReward: 350, isBoss: false },
+      { level: 4, monsterName: 'Красный дракон', monsterIcon: '🐉', monsterPower: 400, goldReward: 4000, expReward: 700, isBoss: true },
     ],
   },
   {
