@@ -29,25 +29,24 @@ const PvPBattle = ({ target, onClose }: PvPBattleProps) => {
 
   const myTown = TOWNS.find(t => t.id === profile?.town);
 
-  // Calculate my power
+  // Calculate power using % multiplier from hero stats
+  const heroAtkMul = 1 + (profile?.hero_attack || 1) * 0.03;
+  const heroDefReduction = Math.min(0.7, (profile?.hero_defense || 1) * 0.02);
+
   const myArmyPower = army.reduce((total, unit) => {
     const unitData = myTown?.units.find(u => u.name === unit.unit_name);
     if (unitData) {
-      const unitAtk = unitData.attack + (profile?.hero_attack || 1);
-      const unitDef = unitData.defense + (profile?.hero_defense || 1);
-      return total + unit.count * (unitAtk + unitDef + Math.floor(unitData.value / 10));
+      return total + unit.count * (unitData.attack + unitData.defense + Math.floor(unitData.value / 10));
     }
     return total;
   }, 0);
 
-  const myAttack = (profile?.hero_attack || 1) * 5 + (profile?.hero_spellpower || 1) * 3 + myArmyPower;
-  const myDefense = (profile?.hero_defense || 1) * 5 + myArmyPower * 0.5;
-  const myPower = Math.floor(myAttack + myDefense);
+  const myPower = Math.floor((profile?.hero_attack || 1) * 5 + (profile?.hero_defense || 1) * 5 + myArmyPower);
 
-  // Estimate enemy power (we don't know their army, estimate from level)
-  const enemyBasePower = target.hero_attack * 5 + target.hero_spellpower * 3;
-  const enemyDefense = target.hero_defense * 5;
-  const enemyEstimate = Math.floor((enemyBasePower + enemyDefense) * (1 + target.hero_level * 0.3));
+  // Estimate enemy power
+  const enemyEstimate = Math.floor(
+    (target.hero_attack * 5 + target.hero_spellpower * 3 + target.hero_defense * 5) * (1 + target.hero_level * 0.2)
+  );
 
   const startBattle = async () => {
     setBattleState('fighting');
