@@ -1,8 +1,8 @@
 import type { ArtifactRarity } from './artifacts';
 
 // Grid dimensions for each floor
-export const FLOOR_COLS = 7;
-export const FLOOR_ROWS = 8;
+export const FLOOR_COLS = 50;
+export const FLOOR_ROWS = 50;
 
 // Respawn times in minutes
 export const BOSS_RESPAWN_MINUTES = 60;
