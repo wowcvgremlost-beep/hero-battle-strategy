@@ -105,7 +105,7 @@ const PlayerMarketplace = () => {
       return art ? `${art.icon} ${art.name}` : id;
     }
     if (type === 'spell') {
-      const spell = SPELLS.find(s => s.id === id);
+      const spell = ALL_SPELLS.find(s => s.id === id);
       return spell ? `${spell.icon} ${spell.name}` : id;
     }
     return id;
