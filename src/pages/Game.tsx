@@ -308,6 +308,7 @@ const Game = () => {
         </div>
       </div>
     );
+  };
 
   const handleEndTurn = async () => {
     if (!profile) return;
