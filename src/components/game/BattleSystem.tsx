@@ -113,21 +113,21 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
 
       if (monsterHP <= 0) break;
 
-      // Monster attacks — distribute damage equally across all alive stacks
-      const monsterDmg = Math.floor(monsterPower * 0.2 * (0.8 + Math.random() * 0.4));
+      // Monster attacks — base damage scales with monsterPower
+      const rawMonsterDmg = Math.floor(monsterPower * 0.15 * (0.85 + Math.random() * 0.3));
+      // Apply hero defense reduction
+      const monsterDmg = Math.max(1, Math.floor(rawMonsterDmg * (1 - heroDefReduction)));
       const aliveStacks = stacks.filter(s => s.count > 0);
       const stackCount = aliveStacks.length;
 
       if (stackCount > 0) {
-        const dmgPerStack = Math.floor(monsterDmg / stackCount);
+        const dmgPerStack = Math.max(1, Math.floor(monsterDmg / stackCount));
 
         for (const stack of aliveStacks) {
-          // Apply hero defense reduction
-          let dmgToStack = Math.max(1, dmgPerStack - Math.floor(heroDefense * 0.5));
-          // Apply unit defense reduction
-          dmgToStack = Math.max(1, dmgToStack - Math.floor(stack.defense * 0.3));
+          // Unit defense gives flat reduction
+          const finalDmg = Math.max(1, dmgPerStack - Math.floor(stack.defense * 0.5));
           
-          stack.hp -= dmgToStack;
+          stack.hp -= finalDmg;
           if (stack.hp <= 0) {
             const lost = stack.count;
             stack.count = 0;
