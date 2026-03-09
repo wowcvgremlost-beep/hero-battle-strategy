@@ -116,7 +116,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'epic',
     icon: '🏛️',
-    bonuses: { defense: 4, attack: 2 },
+    bonuses: { defense: 4, attack: 2, leadership: 5 },
   },
   {
     id: 'armor_invincible',
@@ -125,7 +125,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'armor',
     rarity: 'legendary',
     icon: '⚜️',
-    bonuses: { defense: 6, attack: 2, spellpower: 1 },
+    bonuses: { defense: 6, attack: 2, spellpower: 1, leadership: 8 },
   },
 
   // Weapons
