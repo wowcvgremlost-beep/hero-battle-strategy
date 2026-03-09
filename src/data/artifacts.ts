@@ -13,6 +13,7 @@ export interface Artifact {
     defense?: number;
     spellpower?: number;
     knowledge?: number;
+    leadership?: number;
   };
 }
 
