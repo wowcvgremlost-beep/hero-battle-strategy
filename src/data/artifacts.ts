@@ -78,7 +78,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'helmet',
     rarity: 'legendary',
     icon: '✨',
-    bonuses: { attack: 3, defense: 2, spellpower: 2, knowledge: 2, leadership: 10 },
+    bonuses: { attack: 3, defense: 2, spellpower: 2, knowledge: 2, leadership: 80 },
   },
 
   // Armor
