@@ -183,6 +183,7 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
         .single();
 
       const spawnPos = getSpawnPosition(playerNumber - 1, roomData.map_size);
+      const hasFullProfile = profile?.character_name && profile?.town && profile?.hero_id;
       const { data: player, error: pError } = await supabase
         .from('multiplayer_players')
         .insert({
@@ -200,6 +201,8 @@ const MultiplayerLobby = ({ userId, onJoinRoom }: Props) => {
           hero_defense: profile?.hero_defense || 1,
           hero_spellpower: profile?.hero_spellpower || 1,
           hero_knowledge: profile?.hero_knowledge || 1,
+          is_ready: !!hasFullProfile,
+          status: hasFullProfile ? 'playing' : 'setup',
         })
         .select()
         .single();
