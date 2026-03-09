@@ -512,30 +512,40 @@ const Game = () => {
       )}
 
       <div className="px-4 pt-4 pb-24 max-w-lg mx-auto">
-        <div className="flex gap-1 mb-4">
-          {([
-            { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
-            { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
-            { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
-            { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
-            { id: 'trade' as GameTab, icon: Store, label: 'ЛАВКА' },
-            { id: 'market' as GameTab, icon: ArrowLeftRight, label: 'РЫНОК' },
-            { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
-            { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
-            { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
-            { id: 'pvp' as GameTab, icon: Flame, label: 'PVP' },
-            { id: 'guild' as GameTab, icon: Shield, label: 'ГИЛЬД' },
-            { id: 'achievements' as GameTab, icon: Award, label: 'ДОСТ' },
-            { id: 'events' as GameTab, icon: CalendarDays, label: 'ИВЕНТ' },
-            { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
-          ]).map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex-1 flex items-center justify-center gap-1 rounded-xl py-2.5 font-display text-[10px] font-bold transition-all ${
-                tab === t.id ? 'bg-gradient-crimson text-accent-foreground shadow-crimson' : 'bg-secondary text-muted-foreground hover:text-foreground'
-              }`}>
-              <t.icon className="h-3.5 w-3.5" />
-              {t.label}
-            </button>
+        <div className="space-y-1 mb-4">
+          {[
+            [
+              { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
+              { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
+              { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
+              { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
+              { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
+            ],
+            [
+              { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
+              { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
+              { id: 'trade' as GameTab, icon: Store, label: 'ЛАВКА' },
+              { id: 'market' as GameTab, icon: ArrowLeftRight, label: 'РЫНОК' },
+              { id: 'pvp' as GameTab, icon: Flame, label: 'PVP' },
+            ],
+            [
+              { id: 'guild' as GameTab, icon: Shield, label: 'ГИЛЬД' },
+              { id: 'achievements' as GameTab, icon: Award, label: 'ДОСТ' },
+              { id: 'events' as GameTab, icon: CalendarDays, label: 'ИВЕНТ' },
+              { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
+            ],
+          ].map((row, rowIdx) => (
+            <div key={rowIdx} className="flex gap-1">
+              {row.map((t) => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={`flex-1 flex items-center justify-center gap-1 rounded-xl py-2.5 font-display text-[10px] font-bold transition-all ${
+                    tab === t.id ? 'bg-gradient-crimson text-accent-foreground shadow-crimson' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  }`}>
+                  <t.icon className="h-3.5 w-3.5" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
 
