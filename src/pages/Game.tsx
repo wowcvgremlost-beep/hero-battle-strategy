@@ -41,7 +41,7 @@ function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boo
 }
 
 const Game = () => {
-  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
+  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
