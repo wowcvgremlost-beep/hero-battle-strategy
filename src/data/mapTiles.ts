@@ -1,4 +1,4 @@
-export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'artifact' | 'empty';
+export type TileType = 'grass' | 'forest' | 'mountain' | 'water' | 'road' | 'city' | 'mine' | 'treasure' | 'monster' | 'npc' | 'artifact' | 'dungeon' | 'empty';
 
 export interface MapTile {
   id: number;
@@ -10,6 +10,7 @@ export interface MapTile {
   passable: boolean;
   npcQuestId?: string;
   artifactRarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  dungeonId?: string;
 }
 
 export const MAP_COLS = 60;
