@@ -77,15 +77,6 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
       status: 'playing',
     }).eq('id', myPlayer.id);
 
-    // Also save to profile for future sessions
-    await supabase.from('profiles').update({
-      hero_id: heroId,
-      hero_attack: hero.baseAttack,
-      hero_defense: hero.baseDefense,
-      hero_spellpower: hero.baseSpellpower,
-      hero_knowledge: hero.baseKnowledge,
-    }).eq('user_id', myPlayer.user_id);
-
     // Give starting army
     const town = TOWNS.find(t => t.id === selectedTown);
     if (town && town.units.length > 0) {
@@ -97,9 +88,16 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
       }, { onConflict: 'player_id,unit_name' });
     }
 
-    setStep('ready');
     onRefreshPlayers();
     toast.success('Вы готовы!');
+
+    // For solo rooms (max_players = 1), auto-start the game immediately
+    if (room.max_players === 1) {
+      await supabase.from('multiplayer_rooms').update({ status: 'playing', current_round: 1 }).eq('id', room.id);
+      toast.success('Игра начинается!');
+    } else {
+      setStep('ready');
+    }
   };
 
   const handleStartGame = async () => {
