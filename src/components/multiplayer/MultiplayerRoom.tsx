@@ -280,7 +280,7 @@ const MultiplayerRoom = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
             <p className="font-display text-sm font-bold text-foreground">Вы готовы!</p>
             <p className="text-xs text-muted-foreground">Ожидание остальных игроков...</p>
 
-            {isCreator && allReady && allPlayers.length === room.max_players && (
+            {isCreator && allReady && allPlayers.length >= 2 && (
               <motion.button whileTap={{ scale: 0.97 }} onClick={handleStartGame}
                 className="w-full rounded-xl bg-gradient-crimson p-4 font-display text-sm font-bold text-accent-foreground shadow-crimson">
                 ⚔️ НАЧАТЬ ИГРУ!
