@@ -427,6 +427,48 @@ const GuildScreen = () => {
             );
           })}
         </div>
+
+        {/* Chat */}
+        <div className="rounded-xl border border-border bg-gradient-card p-4 space-y-2">
+          <h4 className="font-display text-sm font-bold text-foreground uppercase flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" /> Чат гильдии
+          </h4>
+          <div className="h-48 overflow-y-auto rounded-lg bg-secondary/30 p-2 space-y-1.5">
+            {chatMessages.length === 0 && (
+              <p className="text-[10px] text-muted-foreground text-center py-8">Пока нет сообщений. Напишите первое!</p>
+            )}
+            {chatMessages.map(msg => {
+              const isMe = msg.user_id === user?.id;
+              const senderName = memberProfiles[msg.user_id]?.character_name || 'Игрок';
+              const time = new Date(msg.created_at).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+              return (
+                <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[80%] rounded-lg px-2.5 py-1.5 ${isMe ? 'bg-gold/20' : 'bg-secondary'}`}>
+                    {!isMe && <p className="text-[9px] text-gold font-bold">{senderName}</p>}
+                    <p className="text-xs text-foreground break-words">{msg.message}</p>
+                    <p className="text-[8px] text-muted-foreground text-right">{time}</p>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') sendChatMessage(); }}
+              maxLength={200}
+              placeholder="Сообщение..."
+              className="flex-1 rounded-lg bg-secondary border border-border px-3 py-2 text-xs text-foreground focus:outline-none focus:border-gold/50"
+            />
+            <motion.button whileTap={{ scale: 0.9 }} onClick={sendChatMessage}
+              disabled={!chatInput.trim() || sendingChat}
+              className="rounded-lg bg-gradient-gold p-2 text-primary-foreground disabled:opacity-40">
+              <Send className="h-4 w-4" />
+            </motion.button>
+          </div>
+        </div>
       </div>
     );
   }
