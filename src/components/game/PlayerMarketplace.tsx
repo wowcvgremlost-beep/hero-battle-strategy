@@ -444,7 +444,7 @@ const PlayerMarketplace = () => {
                       className={`w-full text-left rounded-lg p-2 text-xs transition-all ${
                         sellItemId === ps.spell_id ? 'bg-crimson/15 border border-crimson/30' : 'bg-secondary/50 hover:bg-secondary'
                       }`}>
-                      <span className="text-lg mr-1">{spell.icon}</span>
+                      <span className="text-lg mr-1">✨</span>
                       <span className="font-bold text-foreground">{spell.name}</span>
                       <span className="text-muted-foreground ml-1">Ур.{spell.level}</span>
                     </button>
