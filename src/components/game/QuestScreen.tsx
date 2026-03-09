@@ -16,9 +16,10 @@ interface PlayerQuest {
 
 interface QuestScreenProps {
   onQuestsChange?: () => void;
+  onLeadershipReward?: (amount: number) => void;
 }
 
-const QuestScreen = ({ onQuestsChange }: QuestScreenProps) => {
+const QuestScreen = ({ onQuestsChange, onLeadershipReward }: QuestScreenProps) => {
   const { user, profile, updateGold, updateHeroStats, refreshProfile } = useAuth();
   const [quests, setQuests] = useState<PlayerQuest[]>([]);
   const [loading, setLoading] = useState(true);
