@@ -34,7 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'guild' | 'pvp';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'guild' | 'pvp' | 'achievements';
 
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
   let growth = baseGrowth;
