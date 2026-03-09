@@ -8,7 +8,7 @@ import { getTileAt, getVisibleTiles, getRandomSpawnPosition, type MapTile } from
 import { getCalendar, isNewWeek, formatDate, getWeekNumber } from '@/data/calendar';
 import { getRandomArtifact, getArtifactById, ARTIFACT_RARITY_NAMES, type ArtifactRarity } from '@/data/artifacts';
 import { getDungeonById, type Dungeon } from '@/data/dungeons';
-import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Map, Sparkles, Coins, BookOpen, Dice6, Trash2, Calendar, TrendingUp, Trophy, ScrollText, Package, Store } from 'lucide-react';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -23,13 +23,14 @@ import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
 import DungeonScreen from '@/components/game/DungeonScreen';
+import TradeScreen from '@/components/game/TradeScreen';
 import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses, BASE_ARMY_CAPACITY } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards, QUESTS } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment';
+type GameTab = 'army' | 'buildings' | 'map' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade';
 
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
   let growth = baseGrowth;
@@ -482,6 +483,7 @@ const Game = () => {
             { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
             { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
+            { id: 'trade' as GameTab, icon: Store, label: 'ЛАВКА' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
             { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
@@ -583,6 +585,11 @@ const Game = () => {
         {tab === 'equipment' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <EquipmentScreen />
+          </motion.div>
+        )}
+        {tab === 'trade' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <TradeScreen />
           </motion.div>
         )}
       </div>
