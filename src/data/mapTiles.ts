@@ -189,9 +189,9 @@ export function generateTile(row: number, col: number): MapTile {
     const tierIdx = Math.min(4, Math.floor((difficulty - 1) / 2));
     const tier = MONSTERS_BY_TIER[tierIdx];
     const monster = tier[Math.floor(h2 * tier.length)];
-    const scaledPower = Math.floor(monster.basePower * (1 + dist * 0.03));
-    const goldReward = Math.floor(scaledPower * 2 + h3 * 500);
-    const expReward = Math.floor(scaledPower * 0.8 + h3 * 100);
+    const scaledPower = Math.floor(monster.basePower * (1 + dist * 0.02));
+    const goldReward = Math.floor(scaledPower * 3 + h3 * 300);
+    const expReward = Math.floor(scaledPower * 1.5 + h3 * 80);
     return {
       id, row, col, category: 'combat', type: 'monster',
       name: monster.name, passable: true,
