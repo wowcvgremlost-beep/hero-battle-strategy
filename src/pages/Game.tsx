@@ -24,6 +24,7 @@ import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
 import DungeonScreen from '@/components/game/DungeonScreen';
 import TradeScreen from '@/components/game/TradeScreen';
+import PlayerMarketplace from '@/components/game/PlayerMarketplace';
 import GuildScreen from '@/components/game/GuildScreen';
 import PvPArena from '@/components/game/PvPArena';
 import DailyReward from '@/components/game/DailyReward';
