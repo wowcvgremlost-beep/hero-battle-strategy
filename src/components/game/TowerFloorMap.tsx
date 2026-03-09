@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Swords, Users, Clock, Crown, Skull, Eye } from 'lucide-react';
+import { ArrowLeft, Users, Clock, Crown, Skull, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   FLOOR_COLS, FLOOR_ROWS, BOSS_RESPAWN_MINUTES, MOB_RESPAWN_MINUTES,
-  getMobPositions, getTrapPositions, getQuestPositions,
+  getWalls, getMobPositions, getTrapPositions, getQuestPositions,
   type TowerFloor, type TowerMonster
 } from '@/data/tower';
 import BattleSystem from './BattleSystem';
@@ -23,6 +23,9 @@ interface KillRecord {
   killed_at: string;
 }
 
+const CELL_SIZE = 28;
+const VIEWPORT_CELLS = 9; // visible cells in each direction
+
 const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFloorMapProps) => {
   const { user, profile, heroSkills, updateGold, updateHeroStats } = useAuth();
   const [kills, setKills] = useState<KillRecord[]>([]);
@@ -30,6 +33,8 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
   const [playersOnFloor, setPlayersOnFloor] = useState<any[]>([]);
   const [now, setNow] = useState(Date.now());
   const [playerPos, setPlayerPos] = useState<[number, number]>(floor.entrance);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const [revealed, setRevealed] = useState<Set<string>>(() => {
     if (!user) return new Set();
     try {
@@ -48,18 +53,14 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
   });
   const [triggeredTraps, setTriggeredTraps] = useState<Set<string>>(new Set());
 
-  const wallsSet = useMemo(() => {
-    const s = new Set<string>();
-    floor.walls.forEach(([r, c]) => s.add(`${r},${c}`));
-    return s;
-  }, [floor]);
+  const wallsSet = useMemo(() => getWalls(floor), [floor]);
 
-  // Reveal tiles around player (radius 1)
+  // Reveal tiles around player (radius 2)
   const revealAround = useCallback((r: number, c: number) => {
     setRevealed(prev => {
       const next = new Set(prev);
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
           const nr = r + dr, nc = c + dc;
           if (nr >= 0 && nr < FLOOR_ROWS && nc >= 0 && nc < FLOOR_COLS) {
             next.add(`${nr},${nc}`);
@@ -71,12 +72,21 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
     });
   }, [user, floor.id]);
 
-  // Initial reveal at spawn
+  // Initial reveal
   useEffect(() => {
     revealAround(playerPos[0], playerPos[1]);
   }, []);
 
-  // Update current floor in profile
+  // Scroll to player
+  useEffect(() => {
+    if (scrollRef.current) {
+      const left = playerPos[1] * CELL_SIZE - (scrollRef.current.clientWidth / 2) + CELL_SIZE / 2;
+      const top = playerPos[0] * CELL_SIZE - (scrollRef.current.clientHeight / 2) + CELL_SIZE / 2;
+      scrollRef.current.scrollTo({ left: Math.max(0, left), top: Math.max(0, top), behavior: 'smooth' });
+    }
+  }, [playerPos]);
+
+  // Update current floor
   useEffect(() => {
     if (!user) return;
     supabase.from('profiles').update({ current_floor: floor.id } as any).eq('user_id', user.id);
@@ -98,7 +108,6 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
       if (data) setKills(data);
     };
     load();
-
     const ch = supabase.channel(`tower-kills-${floor.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tower_kills', filter: `floor_id=eq.${floor.id}` }, (p) => {
         const rec = p.new as any;
@@ -123,7 +132,6 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
     return () => clearInterval(t);
   }, [floor.id, user]);
 
-  // Monster dead check
   const isMonsterDead = useCallback((monsterId: string, isBoss: boolean): boolean => {
     const respawnMs = (isBoss ? BOSS_RESPAWN_MINUTES : MOB_RESPAWN_MINUTES) * 60 * 1000;
     const kill = kills.find(k => k.monster_id === monsterId);
@@ -142,11 +150,8 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }, [kills, now]);
 
-  // Compute dynamic positions
-  const mobPositions = useMemo(() =>
-    getMobPositions(floor, now, wallsSet, floor.exit, floor.entrance),
-    [floor, now, wallsSet]
-  );
+  // Dynamic positions
+  const mobPositions = useMemo(() => getMobPositions(floor, now, wallsSet), [floor, now, wallsSet]);
 
   const mobOccupied = useMemo(() => {
     const s = new Set<string>();
@@ -156,62 +161,61 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
     return s;
   }, [mobPositions, floor]);
 
-  const trapPositions = useMemo(() =>
-    getTrapPositions(floor, now, wallsSet, mobOccupied),
-    [floor, now, wallsSet, mobOccupied]
-  );
+  const trapPositions = useMemo(() => getTrapPositions(floor, now, wallsSet, mobOccupied), [floor, now, wallsSet, mobOccupied]);
 
   const questPositions = useMemo(() => {
-    const allOccupied = new Set(mobOccupied);
-    trapPositions.forEach((_, k) => allOccupied.add(k));
-    return getQuestPositions(floor, wallsSet, allOccupied);
+    const allOcc = new Set(mobOccupied);
+    trapPositions.forEach((_, k) => allOcc.add(k));
+    return getQuestPositions(floor, wallsSet, allOcc);
   }, [floor, wallsSet, mobOccupied, trapPositions]);
 
-  // Player movement
+  // Visible range for rendering (only render cells near player for performance)
+  const viewRange = VIEWPORT_CELLS + 2;
+  const minR = Math.max(0, playerPos[0] - viewRange);
+  const maxR = Math.min(FLOOR_ROWS - 1, playerPos[0] + viewRange);
+  const minC = Math.max(0, playerPos[1] - viewRange);
+  const maxC = Math.min(FLOOR_COLS - 1, playerPos[1] + viewRange);
+
   const handleCellClick = (r: number, c: number) => {
     if (battleMonster) return;
     const key = `${r},${c}`;
-    // Must be adjacent
     const dr = Math.abs(r - playerPos[0]);
     const dc = Math.abs(c - playerPos[1]);
-    if (dr + dc !== 1) return; // only cardinal movement
+    if (dr + dc !== 1) return;
     if (wallsSet.has(key)) return;
 
-    // Check for monster
+    // Monster
     const monster = mobPositions.get(key);
     if (monster && !isMonsterDead(monster.id, monster.isBoss)) {
-      setBattleMonster(monster);
       setPlayerPos([r, c]);
       revealAround(r, c);
+      setBattleMonster(monster);
       return;
     }
 
-    // Check boss at exit
-    if (r === floor.exit[0] && c === floor.exit[1]) {
-      if (!isMonsterDead(floor.boss.id, true)) {
-        setBattleMonster(floor.boss);
-        setPlayerPos([r, c]);
-        revealAround(r, c);
-        return;
-      }
+    // Boss at exit
+    if (r === floor.exit[0] && c === floor.exit[1] && !isMonsterDead(floor.boss.id, true)) {
+      setPlayerPos([r, c]);
+      revealAround(r, c);
+      setBattleMonster(floor.boss);
+      return;
     }
 
-    // Move player
+    // Move
     setPlayerPos([r, c]);
     revealAround(r, c);
 
-    // Check trap
+    // Trap
     const trap = trapPositions.get(key);
     if (trap && !triggeredTraps.has(key)) {
       setTriggeredTraps(prev => new Set([...prev, key]));
       if (profile && user) {
-        const newGold = Math.max(0, (profile.gold || 0) - trap.damage);
-        updateGold(newGold);
+        updateGold(Math.max(0, (profile.gold || 0) - trap.damage));
         toast.error(`${trap.icon} ${trap.name}: ${trap.description}`);
       }
     }
 
-    // Check quest
+    // Quest
     const quest = questPositions.get(key);
     if (quest && !completedQuests.has(quest.id)) {
       setCompletedQuests(prev => {
@@ -229,15 +233,9 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
 
   const handleVictory = async () => {
     if (!battleMonster || !user) return;
+    // Record kill (battle record is already handled by BattleSystem)
     await supabase.from('tower_kills').insert({
       user_id: user.id, floor_id: floor.id, monster_id: battleMonster.id,
-    });
-    await supabase.from('battles').insert({
-      attacker_id: user.id, is_pve: true,
-      attacker_power: (profile?.hero_attack || 1) * 5,
-      defender_power: battleMonster.power,
-      winner_id: user.id,
-      gold_reward: battleMonster.goldReward, exp_reward: battleMonster.expReward,
     });
 
     if (battleMonster.isBoss) {
@@ -251,9 +249,91 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
     setBattleMonster(null);
   };
 
-  // Render grid
+  // Build visible cells
+  const cells: React.ReactNode[] = [];
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const key = `${r},${c}`;
+      const isRevealed = revealed.has(key);
+      const isPlayer = r === playerPos[0] && c === playerPos[1];
+      const isWall = wallsSet.has(key);
+      const isEntrance = r === floor.entrance[0] && c === floor.entrance[1];
+      const isExit = r === floor.exit[0] && c === floor.exit[1];
+      const monster = mobPositions.get(key);
+      const bossDead = isMonsterDead(floor.boss.id, true);
+      const monsterDead = monster ? isMonsterDead(monster.id, monster.isBoss) : false;
+      const trap = trapPositions.get(key);
+      const quest = questPositions.get(key);
+
+      const dr = Math.abs(r - playerPos[0]);
+      const dc = Math.abs(c - playerPos[1]);
+      const isAdjacent = dr + dc === 1;
+
+      let content: React.ReactNode = null;
+      let bg = 'bg-secondary/20';
+      let border = 'border-border/10';
+
+      if (!isRevealed) {
+        bg = 'bg-muted/90';
+        border = 'border-muted/40';
+      } else if (isPlayer) {
+        content = <span className="text-xs">🧙</span>;
+        bg = 'bg-arcane/25';
+        border = 'border-arcane/50';
+      } else if (isWall) {
+        content = <span className="text-[8px] opacity-30">🧱</span>;
+        bg = 'bg-muted/60';
+        border = 'border-muted/30';
+      } else if (isExit && !bossDead) {
+        content = <span className="text-xs">{floor.boss.icon}</span>;
+        bg = 'bg-gold/15';
+        border = 'border-gold/40';
+      } else if (isExit && bossDead) {
+        content = <span className="text-[8px]">🚪</span>;
+        bg = 'bg-emerald/15';
+        border = 'border-emerald/30';
+      } else if (isEntrance) {
+        content = <span className="text-[8px]">🔽</span>;
+        bg = 'bg-secondary/40';
+      } else if (monster && !monsterDead) {
+        content = <span className="text-xs">{monster.icon}</span>;
+        bg = 'bg-crimson/10';
+        border = 'border-crimson/25';
+      } else if (monster && monsterDead) {
+        content = <span className="text-[6px]">💤</span>;
+        bg = 'bg-secondary/10 opacity-30';
+      } else if (quest && !completedQuests.has(quest.id)) {
+        content = <span className="text-xs">{quest.icon}</span>;
+        bg = 'bg-gold/10';
+        border = 'border-gold/20';
+      } else if (quest && completedQuests.has(quest.id)) {
+        content = <span className="text-[7px] opacity-30">✓</span>;
+      }
+      // Traps stay hidden
+
+      cells.push(
+        <div
+          key={key}
+          onClick={() => isRevealed && handleCellClick(r, c)}
+          style={{
+            position: 'absolute',
+            left: c * CELL_SIZE,
+            top: r * CELL_SIZE,
+            width: CELL_SIZE,
+            height: CELL_SIZE,
+          }}
+          className={`border flex items-center justify-center ${bg} ${border} ${
+            isRevealed && isAdjacent && !isWall && !isPlayer ? 'cursor-pointer hover:brightness-150 ring-1 ring-foreground/5' : ''
+          }`}
+        >
+          {content}
+        </div>
+      );
+    }
+  }
+
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-2">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground">
@@ -272,7 +352,7 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
         )}
       </div>
 
-      {/* Players list */}
+      {/* Players */}
       {playersOnFloor.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {playersOnFloor.map((p, i) => (
@@ -283,88 +363,21 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
         </div>
       )}
 
-      {/* Grid map */}
-      <div className="grid gap-[2px] mx-auto" style={{
-        gridTemplateColumns: `repeat(${FLOOR_COLS}, 1fr)`,
-        maxWidth: `${FLOOR_COLS * 48}px`,
-      }}>
-        {Array.from({ length: FLOOR_ROWS * FLOOR_COLS }, (_, idx) => {
-          const r = Math.floor(idx / FLOOR_COLS);
-          const c = idx % FLOOR_COLS;
-          const key = `${r},${c}`;
-          const isRevealed = revealed.has(key);
-          const isPlayer = r === playerPos[0] && c === playerPos[1];
-          const isWall = wallsSet.has(key);
-          const isEntrance = r === floor.entrance[0] && c === floor.entrance[1];
-          const isExit = r === floor.exit[0] && c === floor.exit[1];
-          const monster = mobPositions.get(key);
-          const trap = trapPositions.get(key);
-          const quest = questPositions.get(key);
-          const bossDead = isMonsterDead(floor.boss.id, true);
-          const monsterDead = monster ? isMonsterDead(monster.id, monster.isBoss) : false;
-
-          // Adjacency for click
-          const dr = Math.abs(r - playerPos[0]);
-          const dc = Math.abs(c - playerPos[1]);
-          const isAdjacent = dr + dc === 1;
-
-          // Fog of war
-          if (!isRevealed) {
-            return (
-              <div key={idx} className="aspect-square rounded-sm bg-muted/80 border border-border/10" />
-            );
-          }
-
-          let content: React.ReactNode = null;
-          let cellClass = 'bg-secondary/30 border-border/20';
-
-          if (isPlayer) {
-            content = <span className="text-sm">🧙</span>;
-            cellClass = 'bg-arcane/20 border-arcane/40 ring-1 ring-arcane/30';
-          } else if (isWall) {
-            content = <span className="text-xs opacity-40">🧱</span>;
-            cellClass = 'bg-muted border-muted';
-          } else if (isExit) {
-            if (!bossDead) {
-              content = <span className="text-sm">{floor.boss.icon}</span>;
-              cellClass = 'bg-gold/15 border-gold/40';
-            } else {
-              content = <span className="text-xs">🚪</span>;
-              cellClass = 'bg-emerald/10 border-emerald/30';
-            }
-          } else if (isEntrance) {
-            content = <span className="text-xs">🔽</span>;
-            cellClass = 'bg-secondary/40 border-border/30';
-          } else if (monster && !monsterDead) {
-            content = <span className="text-sm">{monster.icon}</span>;
-            cellClass = 'bg-crimson/10 border-crimson/30';
-          } else if (monster && monsterDead) {
-            content = <span className="text-[8px] text-muted-foreground"><Clock className="h-2.5 w-2.5 inline" /></span>;
-            cellClass = 'bg-secondary/20 border-border/10 opacity-40';
-          } else if (quest && !completedQuests.has(quest.id)) {
-            content = <span className="text-sm">{quest.icon}</span>;
-            cellClass = 'bg-gold/10 border-gold/20';
-          } else if (trap && !triggeredTraps.has(key)) {
-            // Traps are HIDDEN until stepped on — show as empty
-            content = null;
-            cellClass = 'bg-secondary/30 border-border/20';
-          } else if (quest && completedQuests.has(quest.id)) {
-            content = <span className="text-xs opacity-30">✓</span>;
-          }
-
-          return (
-            <button
-              key={idx}
-              onClick={() => handleCellClick(r, c)}
-              disabled={!isAdjacent || isWall || isPlayer}
-              className={`aspect-square rounded-sm border flex items-center justify-center transition-all ${cellClass} ${
-                isAdjacent && !isWall && !isPlayer ? 'cursor-pointer hover:brightness-125 ring-1 ring-foreground/10' : ''
-              }`}
-            >
-              {content}
-            </button>
-          );
-        })}
+      {/* Scrollable map */}
+      <div
+        ref={scrollRef}
+        className="relative overflow-auto rounded-xl border border-border/30 bg-background/50"
+        style={{ height: `${VIEWPORT_CELLS * 2 * CELL_SIZE}px` }}
+      >
+        <div
+          style={{
+            position: 'relative',
+            width: FLOOR_COLS * CELL_SIZE,
+            height: FLOOR_ROWS * CELL_SIZE,
+          }}
+        >
+          {cells}
+        </div>
       </div>
 
       {/* Legend */}
