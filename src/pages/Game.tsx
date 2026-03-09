@@ -271,6 +271,15 @@ const Game = () => {
     } else if (tile.type === 'artifact' && tile.artifactRarity) {
       // Handle artifact discovery
       await handleArtifactDiscovery(tile.artifactRarity, tile.name);
+    } else if (tile.type === 'dungeon' && tile.dungeonId) {
+      const dungeon = getDungeonById(tile.dungeonId);
+      if (dungeon) {
+        if ((profile?.hero_level || 1) < dungeon.minHeroLevel) {
+          toast.error(`Требуется уровень ${dungeon.minHeroLevel} для входа в ${dungeon.name}`);
+        } else {
+          setActiveDungeon(dungeon);
+        }
+      }
     } else if ((tile.type === 'treasure' || tile.type === 'mine') && tile.goldReward) {
       const newGold = (profile?.gold || 0) + tile.goldReward;
       await updateGold(newGold);
