@@ -229,7 +229,7 @@ export const ARTIFACTS: Artifact[] = [
     slot: 'accessory',
     rarity: 'uncommon',
     icon: '🚩',
-    bonuses: { leadership: 10 },
+    bonuses: { leadership: 50 },
   },
   {
     id: 'helm_warlord',
