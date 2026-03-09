@@ -102,12 +102,42 @@ const Game = () => {
     return new Set<string>();
   });
 
-  // Defeated tiles - monsters that were beaten
-  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(() => {
-    if (!user) return new Set<string>();
-    try { const s = localStorage.getItem(`defeated_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
-    return new Set<string>();
-  });
+  // Defeated tiles - shared across all players, respawn daily at 00:00 UTC
+  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(new Set<string>());
+
+  // Load defeated tiles from DB (only today's kills count - daily respawn)
+  useEffect(() => {
+    if (!user) return;
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const fetchDefeated = async () => {
+      const { data } = await supabase
+        .from('defeated_tiles')
+        .select('tile_key')
+        .gte('killed_at', todayStart.toISOString());
+      if (data) {
+        setDefeatedTiles(new Set(data.map(d => d.tile_key)));
+      }
+    };
+    fetchDefeated();
+
+    // Realtime subscription for shared map
+    const channel = supabase.channel('defeated-tiles-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'defeated_tiles' }, (payload) => {
+        const newTileKey = (payload.new as any).tile_key;
+        if (newTileKey) {
+          setDefeatedTiles(prev => {
+            const next = new Set(prev);
+            next.add(newTileKey);
+            return next;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   // Reveal tiles around current position
   useEffect(() => {
