@@ -97,17 +97,61 @@ const Multiplayer = () => {
   const handleLeaveRoom = async () => {
     if (!user || !currentRoom || !myPlayer) return;
 
-    if (currentRoom.creator_id === user.id) {
-      // Creator deletes entire room (cascade deletes everything)
-      await supabase.from('multiplayer_rooms').delete().eq('id', currentRoom.id);
-      toast.success('Комната удалена');
-    } else {
-      await supabase.from('multiplayer_players').delete().eq('id', myPlayer.id);
-      toast.success('Вы покинули комнату');
+    try {
+      const isCreator = currentRoom.creator_id === user.id;
+
+      if (isCreator) {
+        // IMPORTANT: fetch remaining players BEFORE deleting our player row,
+        // otherwise we lose room membership and RLS will block reading the room players.
+        const { data: otherPlayers, error: otherPlayersError } = await supabase
+          .from('multiplayer_players')
+          .select('id, user_id, player_number')
+          .eq('room_id', currentRoom.id)
+          .neq('id', myPlayer.id)
+          .order('player_number', { ascending: true });
+
+        if (otherPlayersError) throw otherPlayersError;
+
+        if (!otherPlayers || otherPlayers.length === 0) {
+          // No one else in the room → delete it
+          const { error: deleteRoomError } = await supabase
+            .from('multiplayer_rooms')
+            .delete()
+            .eq('id', currentRoom.id);
+          if (deleteRoomError) throw deleteRoomError;
+          toast.success('Комната удалена');
+        } else {
+          // Transfer creator role to the lowest player_number so the room can continue
+          const nextCreatorId = (otherPlayers[0] as any).user_id as string;
+          const { error: transferError } = await supabase
+            .from('multiplayer_rooms')
+            .update({ creator_id: nextCreatorId })
+            .eq('id', currentRoom.id);
+          if (transferError) throw transferError;
+
+          const { error: leaveError } = await supabase
+            .from('multiplayer_players')
+            .delete()
+            .eq('id', myPlayer.id);
+          if (leaveError) throw leaveError;
+
+          toast.success('Вы покинули комнату (создатель передан)');
+        }
+      } else {
+        const { error: leaveError } = await supabase
+          .from('multiplayer_players')
+          .delete()
+          .eq('id', myPlayer.id);
+        if (leaveError) throw leaveError;
+        toast.success('Вы покинули комнату');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Ошибка выхода из комнаты');
+    } finally {
+      setCurrentRoom(null);
+      setMyPlayer(null);
+      setAllPlayers([]);
     }
-    setCurrentRoom(null);
-    setMyPlayer(null);
-    setAllPlayers([]);
   };
 
   if (!user) return null;
