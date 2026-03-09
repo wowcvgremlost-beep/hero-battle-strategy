@@ -114,7 +114,7 @@ const TowerView = () => {
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-[10px] text-muted-foreground">
                       <Skull className="h-3 w-3 inline mr-0.5" />
-                      {floor.monsters.length} монстров
+                      {floor.monsters.length + 1} существ
                     </span>
                     <span className="text-[10px] text-muted-foreground">
                       Ур. {floor.minLevel}+
