@@ -10,6 +10,7 @@ export interface QuestDef {
   target: number; // how many to complete
   goldReward: number;
   expReward: number;
+  leadershipReward?: number; // bonus to permanent leadership
   npcName: string;
   npcEmoji: string;
   minLevel: number; // minimum hero level to see this quest
