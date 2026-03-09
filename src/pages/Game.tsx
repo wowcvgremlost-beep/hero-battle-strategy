@@ -21,7 +21,7 @@ import Leaderboard from '@/components/game/Leaderboard';
 import PvPBattle from '@/components/game/PvPBattle';
 import QuestScreen from '@/components/game/QuestScreen';
 import EquipmentScreen from '@/components/game/EquipmentScreen';
-import { expForLevel, getRandomSkillChoices, SKILLS } from '@/data/skills';
+import { expForLevel, getRandomSkillChoices, SKILLS, getSkillBonuses } from '@/data/skills';
 import { getScaledMonsterPower, getScaledRewards } from '@/data/quests';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,7 +41,7 @@ function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boo
 }
 
 const Game = () => {
-  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
+  const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
   const [tab, setTab] = useState<GameTab>('map');
@@ -59,6 +59,7 @@ const Game = () => {
   // Convert heroSkills array to a map
   const skillsMap: Record<string, number> = {};
   heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
+  const skillBonuses = getSkillBonuses(skillsMap);
 
   // Creature pool: how many of each unit are available to hire this week
   // Stored in localStorage, reset each week
@@ -378,10 +379,20 @@ const Game = () => {
       skill_level: currentLevel + 1,
     }, { onConflict: 'user_id,skill_id' });
 
-    await updateHeroStats({
+    // Apply wisdom mana bonus if wisdom was chosen
+    const statsUpdate: any = {
       hero_level: newLevel,
       hero_experience: Math.max(0, leftoverExp),
-    });
+    };
+
+    if (skillId === 'wisdom') {
+      // +10 mana per wisdom level
+      const newMana = (profile.mana || 50) + 10;
+      await updateMana(newMana);
+      toast.info(`📖 Мудрость повышена! +10 маны (всего: ${newMana})`);
+    }
+
+    await updateHeroStats(statsUpdate);
 
     await refreshHeroSkills();
     setLevelUpPending(false);
@@ -429,15 +440,24 @@ const Game = () => {
         <div className="flex items-center gap-3 mt-1 pb-1">
           <div className="flex items-center gap-1">
             <Swords className="h-3 w-3 text-crimson" />
-            <span className="text-[10px] text-foreground">{profile?.hero_attack}</span>
+            <span className="text-[10px] text-foreground">
+              {profile?.hero_attack}
+              {skillBonuses.bonusAttack > 0 && <span className="text-emerald">+{skillBonuses.bonusAttack}</span>}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Shield className="h-3 w-3 text-gold" />
-            <span className="text-[10px] text-foreground">{profile?.hero_defense}</span>
+            <span className="text-[10px] text-foreground">
+              {profile?.hero_defense}
+              {skillBonuses.bonusDefense > 0 && <span className="text-emerald">+{skillBonuses.bonusDefense}</span>}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Sparkles className="h-3 w-3 text-arcane" />
-            <span className="text-[10px] text-foreground">{profile?.hero_spellpower}</span>
+            <span className="text-[10px] text-foreground">
+              {profile?.hero_spellpower}
+              {skillBonuses.bonusSpellpower > 0 && <span className="text-emerald">+{skillBonuses.bonusSpellpower}</span>}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <BookOpen className="h-3 w-3 text-emerald" />
@@ -521,7 +541,7 @@ const Game = () => {
             <HexMap diceRoll={diceRoll} onTileSelect={handleTileSelect} onMove={handleMove} revealedTiles={revealedTiles} onAttackPlayer={(p) => setPvpTarget(p)} />
 
             {/* Dice - disabled if already used this turn */}
-            <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} />
+            <DiceRoller onRoll={handleDiceRoll} disabled={diceUsed} logisticsBonus={skillBonuses.bonusMove} />
             {diceUsed && !diceRoll && (
               <p className="text-center text-[10px] text-muted-foreground">Вы уже бросали кубик в этот ход</p>
             )}

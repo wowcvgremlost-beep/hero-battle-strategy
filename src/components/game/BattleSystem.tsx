@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Shield, Heart, Sparkles, Trophy, X } from 'lucide-react';
+import { Swords, Shield, Heart, Sparkles, Trophy, X, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
+import { getSkillBonuses } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,16 +17,23 @@ interface BattleSystemProps {
 }
 
 const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClose, onVictory }: BattleSystemProps) => {
-  const { user, profile, army, updateGold, updateHeroStats, refreshProfile } = useAuth();
+  const { user, profile, army, heroSkills, updateGold, updateHeroStats, refreshProfile } = useAuth();
   const [battleState, setBattleState] = useState<'ready' | 'fighting' | 'victory' | 'defeat'>('ready');
   const [battleLog, setBattleLog] = useState<string[]>([]);
+  const [criticalHits, setCriticalHits] = useState(0);
 
   const town = TOWNS.find((t) => t.id === profile?.town);
 
-  // Calculate player power: Hero stats + Army value
-  const heroAttack = profile?.hero_attack || 1;
-  const heroDefense = profile?.hero_defense || 1;
-  const heroSpellpower = profile?.hero_spellpower || 1;
+  // Convert heroSkills array to map
+  const skillsMap: Record<string, number> = {};
+  heroSkills.forEach(s => { skillsMap[s.skill_id] = s.skill_level; });
+  const bonuses = getSkillBonuses(skillsMap);
+
+  // Calculate player power: Hero stats + Army value + Skill bonuses
+  const heroAttack = (profile?.hero_attack || 1) + bonuses.bonusAttack;
+  const heroDefense = (profile?.hero_defense || 1) + bonuses.bonusDefense;
+  const heroSpellpower = (profile?.hero_spellpower || 1) + bonuses.bonusSpellpower;
+  const luckChance = bonuses.luckChance; // % chance for critical hit
 
   // Army power calculation
   const armyPower = army.reduce((total, unit) => {
@@ -44,9 +52,13 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
   const startBattle = async () => {
     setBattleState('fighting');
     const logs: string[] = [];
+    let crits = 0;
 
     logs.push(`⚔️ Бой начался против ${monsterName}!`);
     logs.push(`Ваша сила: ${playerPower} | Враг: ${monsterPower}`);
+    if (luckChance > 0) {
+      logs.push(`🍀 Шанс крита: ${luckChance}%`);
+    }
 
     // Simulate battle rounds
     let playerHP = playerPower;
@@ -54,10 +66,20 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
     let round = 1;
 
     while (playerHP > 0 && monsterHP > 0 && round <= 10) {
+      // Check for critical hit
+      const isCritical = Math.random() * 100 < luckChance;
+      const critMultiplier = isCritical ? 2 : 1;
+      
       // Player attacks
-      const playerDamage = Math.floor(totalAttack * (0.8 + Math.random() * 0.4));
+      let playerDamage = Math.floor(totalAttack * (0.8 + Math.random() * 0.4) * critMultiplier);
       monsterHP -= playerDamage;
-      logs.push(`Раунд ${round}: Вы наносите ${playerDamage} урона.`);
+      
+      if (isCritical) {
+        crits++;
+        logs.push(`Раунд ${round}: 🍀 КРИТ! Вы наносите ${playerDamage} урона!`);
+      } else {
+        logs.push(`Раунд ${round}: Вы наносите ${playerDamage} урона.`);
+      }
 
       if (monsterHP <= 0) break;
 
@@ -70,6 +92,7 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
       round++;
     }
 
+    setCriticalHits(crits);
     setBattleLog(logs);
 
     // Determine outcome
@@ -77,7 +100,8 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
 
     if (monsterHP <= 0) {
       setBattleState('victory');
-      logs.push(`🏆 ПОБЕДА! Получено: ${goldReward} золота, ${expReward} опыта.`);
+      const critBonus = crits > 0 ? ` (${crits} критов!)` : '';
+      logs.push(`🏆 ПОБЕДА!${critBonus} Получено: ${goldReward} золота, ${expReward} опыта.`);
       setBattleLog([...logs]);
 
       // Award rewards
@@ -138,6 +162,12 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
             <div className="text-[10px] text-muted-foreground mt-1">
               Атака: {totalAttack.toFixed(0)} | Защита: {totalDefense.toFixed(0)}
             </div>
+            {luckChance > 0 && (
+              <div className="text-[10px] text-emerald mt-1 flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                Крит: {luckChance}%
+              </div>
+            )}
           </div>
           <div className="rounded-lg bg-secondary/50 p-3">
             <p className="text-[10px] text-muted-foreground uppercase mb-1">Сила врага</p>
@@ -155,7 +185,9 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
         {battleLog.length > 0 && (
           <div className="rounded-lg bg-secondary/30 p-3 mb-4 max-h-32 overflow-y-auto">
             {battleLog.map((log, i) => (
-              <p key={i} className="text-xs text-muted-foreground">{log}</p>
+              <p key={i} className={`text-xs ${log.includes('КРИТ') ? 'text-emerald font-bold' : 'text-muted-foreground'}`}>
+                {log}
+              </p>
             ))}
           </div>
         )}
@@ -192,6 +224,7 @@ const BattleSystem = ({ monsterPower, monsterName, goldReward, expReward, onClos
           >
             <Trophy className="h-5 w-5" />
             ЗАБРАТЬ НАГРАДУ
+            {criticalHits > 0 && <span className="text-xs ml-2">({criticalHits}🍀)</span>}
           </motion.button>
         )}
 

@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dice6 } from 'lucide-react';
+import { Dice6, TrendingUp } from 'lucide-react';
 
 interface DiceRollerProps {
   onRoll: (value: number) => void;
   disabled?: boolean;
+  logisticsBonus?: number;
 }
 
-const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
+const DiceRoller = ({ onRoll, disabled, logisticsBonus = 0 }: DiceRollerProps) => {
   const [manualInput, setManualInput] = useState('');
   const [lastRoll, setLastRoll] = useState<number | null>(null);
+  const [baseRoll, setBaseRoll] = useState<number | null>(null);
   const [rolling, setRolling] = useState(false);
 
   const handleManualSubmit = () => {
     const value = parseInt(manualInput);
     if (value >= 1 && value <= 6) {
-      setLastRoll(value);
-      onRoll(value);
+      const totalValue = value + logisticsBonus;
+      setBaseRoll(value);
+      setLastRoll(totalValue);
+      onRoll(totalValue);
       setManualInput('');
     }
   };
@@ -32,9 +36,11 @@ const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
       count++;
       if (count > 10) {
         clearInterval(interval);
-        const finalValue = Math.floor(Math.random() * 6) + 1;
-        setLastRoll(finalValue);
-        onRoll(finalValue);
+        const finalBase = Math.floor(Math.random() * 6) + 1;
+        const totalValue = finalBase + logisticsBonus;
+        setBaseRoll(finalBase);
+        setLastRoll(totalValue);
+        onRoll(totalValue);
         setRolling(false);
       }
     }, 80);
@@ -42,9 +48,17 @@ const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
 
   return (
     <div className="rounded-xl border border-gold/20 bg-gradient-card p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Dice6 className="h-5 w-5 text-gold" />
-        <h3 className="font-display text-sm font-bold text-foreground">БРОСОК КУБИКА (d6)</h3>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Dice6 className="h-5 w-5 text-gold" />
+          <h3 className="font-display text-sm font-bold text-foreground">БРОСОК КУБИКА (d6)</h3>
+        </div>
+        {logisticsBonus > 0 && (
+          <div className="flex items-center gap-1 text-emerald text-xs bg-emerald/10 px-2 py-1 rounded-lg">
+            <TrendingUp className="h-3 w-3" />
+            <span>+{logisticsBonus} логистика</span>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -85,17 +99,22 @@ const DiceRoller = ({ onRoll, disabled }: DiceRollerProps) => {
 
       {/* Result */}
       <AnimatePresence mode="wait">
-        {lastRoll !== null && (
+        {lastRoll !== null && !rolling && (
           <motion.div
             key={lastRoll}
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.5, opacity: 0 }}
-            className="mt-3 flex justify-center"
+            className="mt-3 flex items-center justify-center gap-2"
           >
             <div className="w-12 h-12 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
               <span className="font-display text-2xl font-black text-primary-foreground">{lastRoll}</span>
             </div>
+            {logisticsBonus > 0 && baseRoll !== null && (
+              <span className="text-xs text-muted-foreground">
+                ({baseRoll} + {logisticsBonus})
+              </span>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
