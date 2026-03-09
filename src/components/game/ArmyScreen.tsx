@@ -133,6 +133,9 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
     return sum + (unitData ? unit.count * unitData.value : 0);
   }, 0);
 
+  const totalUnits = army.reduce((s, a) => s + a.count, 0);
+  const capacityLeft = armyCapacity - totalUnits;
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-gold/20 bg-gradient-card p-3 flex items-center justify-between">
@@ -142,9 +145,13 @@ const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: Arm
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground uppercase">Юнитов</p>
-          <p className="font-display text-lg font-bold text-foreground">
-            {army.reduce((s, a) => s + a.count, 0)}
+          <p className={`font-display text-lg font-bold ${totalUnits >= armyCapacity ? 'text-crimson' : 'text-foreground'}`}>
+            {totalUnits} / {armyCapacity}
           </p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase">👑 Лидерство</p>
+          <p className="font-display text-lg font-bold text-arcane">{armyCapacity}</p>
         </div>
       </div>
 
