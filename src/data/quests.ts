@@ -32,11 +32,10 @@ export const QUESTS: QuestDef[] = [
   { id: 'hire_legion', name: 'Легион', description: 'Наймите 30 юнитов', type: 'hire', target: 30, goldReward: 1200, expReward: 200, leadershipReward: 10, npcName: 'Маршал', npcEmoji: '🛡️', minLevel: 3 },
 
   // Late-game quests
-  { id: 'kill_bosses', name: 'Истребитель', description: 'Победите 10 монстров', type: 'kill', target: 10, goldReward: 3000, expReward: 500, npcName: 'Оракул', npcEmoji: '🔮', minLevel: 5 },
+  { id: 'kill_bosses', name: 'Истребитель', description: 'Победите 10 монстров', type: 'kill', target: 10, goldReward: 3000, expReward: 500, leadershipReward: 15, npcName: 'Оракул', npcEmoji: '🔮', minLevel: 5 },
   { id: 'collect_gold_3', name: 'Сокровище дракона', description: 'Накопите 25000 золота', type: 'collect_gold', target: 25000, goldReward: 5000, expReward: 400, npcName: 'Дракон', npcEmoji: '🐉', minLevel: 5 },
   { id: 'explore_world', name: 'Первооткрыватель', description: 'Исследуйте 100 клеток', type: 'explore', target: 100, goldReward: 2500, expReward: 600, npcName: 'Странник', npcEmoji: '🌍', minLevel: 5 },
   { id: 'hire_horde', name: 'Орда', description: 'Наймите 60 юнитов', type: 'hire', target: 60, goldReward: 3000, expReward: 500, leadershipReward: 20, npcName: 'Полководец', npcEmoji: '👑', minLevel: 5 },
-  { id: 'kill_bosses', name: 'Истребитель', description: 'Победите 10 монстров', type: 'kill', target: 10, goldReward: 3000, expReward: 500, leadershipReward: 15, npcName: 'Оракул', npcEmoji: '🔮', minLevel: 5 },
 ];
 
 // NPC tile positions on map (deterministic based on quest index)
