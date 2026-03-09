@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TOWNS, type TownId } from '@/data/towns';
 import { HEROES } from '@/data/heroes';
-import { Users, LogOut, Check, Crown, Swords, Shield, Sparkles, Copy } from 'lucide-react';
+import { Users, LogOut, Check, Crown, Swords, Shield, Sparkles, Copy, Trash2 } from 'lucide-react';
 import type { RoomData, PlayerData } from '@/pages/Multiplayer';
 
 interface Props {
