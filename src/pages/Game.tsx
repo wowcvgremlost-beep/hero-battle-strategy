@@ -476,6 +476,7 @@ const Game = () => {
             { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
             { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
             { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
+            { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
             { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
             { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
