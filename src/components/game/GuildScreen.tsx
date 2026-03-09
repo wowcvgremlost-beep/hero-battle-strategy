@@ -146,7 +146,29 @@ const GuildScreen = () => {
     setRaidParticipants((data || []) as RaidParticipant[]);
   };
 
-  const loadAllGuilds = async () => {
+  const loadChatMessages = async (guildId: string) => {
+    const { data } = await supabase.from('guild_messages').select('id, user_id, message, created_at')
+      .eq('guild_id', guildId).order('created_at', { ascending: true }).limit(100);
+    setChatMessages((data || []) as any[]);
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
+  };
+
+  const sendChatMessage = async () => {
+    if (!user || !myGuild || !chatInput.trim() || sendingChat) return;
+    setSendingChat(true);
+    try {
+      await supabase.from('guild_messages').insert({
+        guild_id: myGuild.id, user_id: user.id, message: chatInput.trim(),
+      });
+      setChatInput('');
+    } catch {
+      toast.error('Ошибка отправки');
+    } finally {
+      setSendingChat(false);
+    }
+  };
+
+
     const { data } = await supabase.from('guilds').select('*').order('level', { ascending: false });
     setAllGuilds((data || []) as Guild[]);
   };
