@@ -304,13 +304,12 @@ const Game = () => {
         await updateGold(newGold);
         updateQuestProgress('collect_gold', newGold);
         toast.success(`Найдено: ${tile.goldReward} золота!${tile.expReward ? ` +${tile.expReward} опыта` : ''}`);
-        // Mark as collected
-        setDefeatedTiles(prev => {
-          const next = new Set(prev);
-          next.add(tileKey);
-          if (user) localStorage.setItem(`defeated_${user.id}`, JSON.stringify([...next]));
-          return next;
-        });
+        // Mark as collected in shared DB
+        if (user) {
+          await supabase.from('defeated_tiles').insert({
+            tile_key: tileKey, killed_by: user.id, tile_type: tile.type,
+          });
+        }
       }
     }
   };
