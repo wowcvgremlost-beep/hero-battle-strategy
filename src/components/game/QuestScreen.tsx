@@ -139,6 +139,7 @@ const QuestScreen = ({ onQuestsChange, onLeadershipReward }: QuestScreenProps) =
                       <div className="flex items-center gap-3 mt-2 text-[10px]">
                         <span className="text-gold flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{def.goldReward}</span>
                         <span className="text-arcane flex items-center gap-0.5"><Sparkles className="h-2.5 w-2.5" />{def.expReward}</span>
+                        {def.leadershipReward && <span className="text-foreground flex items-center gap-0.5">👑 +{def.leadershipReward}</span>}
                       </div>
                     </div>
                   </div>
