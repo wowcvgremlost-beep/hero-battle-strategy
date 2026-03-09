@@ -335,11 +335,8 @@ const Game = () => {
     await supabase.from('player_artifacts').insert({
       user_id: user.id, artifact_id: artifact.id, slot: artifact.slot, is_equipped: false,
     });
-    setDefeatedTiles(prev => {
-      const next = new Set(prev);
-      next.add(tileKey);
-      if (user) localStorage.setItem(`defeated_${user.id}`, JSON.stringify([...next]));
-      return next;
+    await supabase.from('defeated_tiles').insert({
+      tile_key: tileKey, killed_by: user.id, tile_type: 'artifact',
     });
     toast.success(
       <div className="flex items-center gap-2">
