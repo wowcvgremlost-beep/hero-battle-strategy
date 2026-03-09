@@ -493,6 +493,7 @@ const Game = () => {
             { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
             { id: 'pvp' as GameTab, icon: Flame, label: 'PVP' },
             { id: 'guild' as GameTab, icon: Shield, label: 'ГИЛЬД' },
+            { id: 'achievements' as GameTab, icon: Award, label: 'ДОСТ' },
             { id: 'leaderboard' as GameTab, icon: Trophy, label: 'ТОП' },
           ]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
