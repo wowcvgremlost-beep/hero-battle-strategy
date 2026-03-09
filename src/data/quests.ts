@@ -22,7 +22,7 @@ export const QUESTS: QuestDef[] = [
   { id: 'collect_gold_1', name: 'Казна деревни', description: 'Соберите 3000 золота', type: 'collect_gold', target: 3000, goldReward: 800, expReward: 50, npcName: 'Купец', npcEmoji: '🧔', minLevel: 1 },
   { id: 'explore_tiles', name: 'Разведчик', description: 'Исследуйте 20 клеток карты', type: 'explore', target: 20, goldReward: 400, expReward: 100, npcName: 'Следопыт', npcEmoji: '🏹', minLevel: 1 },
   { id: 'build_first', name: 'Строитель', description: 'Постройте 3 здания в городе', type: 'build', target: 3, goldReward: 600, expReward: 60, npcName: 'Архитектор', npcEmoji: '👷', minLevel: 1 },
-  { id: 'hire_army', name: 'Командир', description: 'Наймите 10 юнитов', type: 'hire', target: 10, goldReward: 500, expReward: 70, npcName: 'Генерал', npcEmoji: '⚔️', minLevel: 1 },
+  { id: 'hire_army', name: 'Командир', description: 'Наймите 10 юнитов', type: 'hire', target: 10, goldReward: 500, expReward: 70, leadershipReward: 5, npcName: 'Генерал', npcEmoji: '⚔️', minLevel: 1 },
 
   // Mid-game quests
   { id: 'kill_strong', name: 'Охотник за монстрами', description: 'Победите 5 монстров', type: 'kill', target: 5, goldReward: 1500, expReward: 200, npcName: 'Охотник', npcEmoji: '🗡️', minLevel: 3 },
