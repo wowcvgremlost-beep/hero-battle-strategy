@@ -115,23 +115,18 @@ const MultiplayerGame = ({ room, myPlayer, allPlayers, onLeave, onRefreshPlayers
     return () => { supabase.removeChannel(channel); };
   }, [room.id]);
 
-  // Check if all players ended turn → advance round
+  // Check if all players ended turn → advance round via server function
   useEffect(() => {
     const checkRoundEnd = async () => {
       const activePlayers = allPlayers.filter(p => p.status === 'playing');
       if (activePlayers.length > 0 && activePlayers.every(p => p.has_ended_turn)) {
         if (room.creator_id === myPlayer.user_id) {
-          // Creator advances the round
-          const newRound = room.current_round + 1;
-          await supabase.from('multiplayer_rooms').update({ current_round: newRound }).eq('id', room.id);
-          // Reset all players' turn flags
-          for (const p of activePlayers) {
-            await supabase.from('multiplayer_players').update({
-              has_ended_turn: false,
-              day: p.day + 1,
-            }).eq('id', p.id);
+          const { error } = await supabase.rpc('advance_multiplayer_round', { _room_id: room.id });
+          if (error) {
+            console.error('advance_multiplayer_round error:', error.message);
+          } else {
+            toast.info(`🔄 Раунд ${room.current_round + 1}!`);
           }
-          toast.info(`🔄 Раунд ${newRound}!`);
         }
       }
     };
