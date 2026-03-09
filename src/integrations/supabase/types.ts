@@ -553,6 +553,78 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_offers: {
+        Row: {
+          buyer_id: string | null
+          created_at: string
+          id: string
+          item_count: number
+          item_id: string
+          item_type: string
+          price: number
+          seller_id: string
+          sold_at: string | null
+          status: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          created_at?: string
+          id?: string
+          item_count?: number
+          item_id: string
+          item_type: string
+          price?: number
+          seller_id: string
+          sold_at?: string | null
+          status?: string
+        }
+        Update: {
+          buyer_id?: string | null
+          created_at?: string
+          id?: string
+          item_count?: number
+          item_id?: string
+          item_type?: string
+          price?: number
+          seller_id?: string
+          sold_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      trade_requests: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          receiver_offer: Json
+          resolved_at: string | null
+          sender_id: string
+          sender_offer: Json
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          receiver_offer?: Json
+          resolved_at?: string | null
+          sender_id: string
+          sender_offer?: Json
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          receiver_offer?: Json
+          resolved_at?: string | null
+          sender_id?: string
+          sender_offer?: Json
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
