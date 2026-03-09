@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS } from '@/data/towns';
 import { HEROES } from '@/data/heroes';
@@ -46,6 +47,7 @@ function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boo
 }
 
 const Game = () => {
+  const navigate = useNavigate();
   const { user, profile, buildings, army, spells, heroSkills, signOut, updateMapPosition, updateDay, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
@@ -449,6 +451,9 @@ const Game = () => {
               <Sparkles className="h-3 w-3 text-arcane" />
               <span className="text-xs font-bold text-arcane">{profile?.mana || 0}</span>
             </div>
+            <button onClick={() => navigate('/multiplayer')} className="text-muted-foreground hover:text-gold transition-colors" title="Мультиплеер">
+              <Users className="h-4 w-4" />
+            </button>
             <button onClick={() => setShowDeleteConfirm(true)} className="text-muted-foreground hover:text-destructive transition-colors" title="Удалить персонажа">
               <Trash2 className="h-4 w-4" />
             </button>
