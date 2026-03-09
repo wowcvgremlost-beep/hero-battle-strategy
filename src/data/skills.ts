@@ -59,6 +59,14 @@ export const SKILLS: SkillDef[] = [
     maxLevel: 5,
     effect: (lvl) => `${lvl * 5}% шанс двойного урона`,
   },
+  {
+    id: 'leadership',
+    name: 'Лидерство',
+    icon: '👑',
+    description: 'Увеличивает вместимость армии',
+    maxLevel: 10,
+    effect: (lvl) => `+${lvl * 15} к вместимости армии (база: 20)`,
+  },
 ];
 
 // Experience needed to reach next level
