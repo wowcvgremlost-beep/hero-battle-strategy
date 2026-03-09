@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TOWNS } from '@/data/towns';
 import { getSkillBonuses } from '@/data/skills';
 import { toast } from 'sonner';
-import { Users, Crown, Swords, Plus, LogOut, Zap, Trophy, Shield } from 'lucide-react';
+import { Users, Crown, Swords, Plus, LogOut, Zap, Trophy, Shield, MessageCircle, Send } from 'lucide-react';
 
 interface Guild {
   id: string;
