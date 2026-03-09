@@ -11,8 +11,7 @@ import { Shield, Swords, LogOut, Building2, Users, Sparkles, Coins, BookOpen, Tr
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
-import HexMap from '@/components/game/HexMap';
-import DiceRoller from '@/components/game/DiceRoller';
+import TowerView from '@/components/game/TowerView';
 import BattleSystem from '@/components/game/BattleSystem';
 import ArmyScreen from '@/components/game/ArmyScreen';
 import HeroSkillsScreen from '@/components/game/HeroSkillsScreen';
