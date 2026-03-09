@@ -85,6 +85,38 @@ export type Database = {
           },
         ]
       }
+      guild_messages: {
+        Row: {
+          created_at: string
+          guild_id: string
+          id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          guild_id: string
+          id?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          guild_id?: string
+          id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_messages_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guild_raid_participants: {
         Row: {
           damage_dealt: number
@@ -431,6 +463,10 @@ export type Database = {
     }
     Functions: {
       is_guild_leader: {
+        Args: { _guild_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_guild_member: {
         Args: { _guild_id: string; _user_id: string }
         Returns: boolean
       }
