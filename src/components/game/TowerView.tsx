@@ -38,9 +38,9 @@ const TowerView = () => {
   // Load player counts per floor
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from('profiles')
-        .select('current_floor')
+        .select('current_floor') as any)
         .eq('character_created', true);
       if (data) {
         const counts: Record<number, number> = {};

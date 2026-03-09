@@ -64,11 +64,11 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
   // Load players on this floor
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from('profiles')
-        .select('user_id, character_name, hero_level, hero_id, town, current_floor')
+        .select('user_id, character_name, hero_level, hero_id, town, current_floor') as any)
         .eq('character_created', true)
-        .eq('current_floor' as any, floor.id);
+        .eq('current_floor', floor.id);
       if (data) setPlayersOnFloor(data.filter(p => p.user_id !== user?.id));
     };
     load();
