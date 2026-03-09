@@ -106,7 +106,7 @@ const PlayerMarketplace = () => {
     }
     if (type === 'spell') {
       const spell = ALL_SPELLS.find(s => s.id === id);
-      return spell ? `${spell.icon} ${spell.name}` : id;
+      return spell ? `✨ ${spell.name}` : id;
     }
     return id;
   };
