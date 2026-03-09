@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { TOWNS, type TownId } from '@/data/towns';
 import { getArtifactById, ARTIFACT_RARITY_COLORS, ARTIFACT_RARITY_NAMES } from '@/data/artifacts';
-import { SPELLS } from '@/data/spells';
+import { ALL_SPELLS } from '@/data/spells';
 import { toast } from 'sonner';
 import { Coins, ShoppingCart, Tag, Store, Users, ArrowLeftRight, Package, X, Plus, Minus, Search } from 'lucide-react';
 
