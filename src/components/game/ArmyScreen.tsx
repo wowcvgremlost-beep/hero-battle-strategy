@@ -15,7 +15,7 @@ interface ArmyScreenProps {
   armyCapacity: number;
 }
 
-const ArmyScreen = ({ townId, creaturePool, onHire, hasFort }: ArmyScreenProps) => {
+const ArmyScreen = ({ townId, creaturePool, onHire, hasFort, armyCapacity }: ArmyScreenProps) => {
   const { user, profile, army, buildings, refreshArmy, updateGold } = useAuth();
   const town = TOWNS.find(t => t.id === townId);
   const [buying, setBuying] = useState(false);
