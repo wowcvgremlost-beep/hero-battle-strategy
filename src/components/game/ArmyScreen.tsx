@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { TOWNS, type TownId } from '@/data/towns';
 import { TOWN_BUILDINGS } from '@/data/buildings';
+import { UNIT_LEADERSHIP_COST } from '@/data/skills';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Swords, Shield, Heart, Zap, Coins, ShoppingCart, Lock, Info, Ban, Minus, Plus } from 'lucide-react';
