@@ -70,11 +70,11 @@ export const DUNGEONS: Dungeon[] = [
     minHeroLevel: 8,
     bossArtifactRarity: 'epic',
     floors: [
-      { level: 1, monsterName: 'Бесы', monsterIcon: '😈', monsterPower: 400, goldReward: 1000, expReward: 200, isBoss: false },
-      { level: 2, monsterName: 'Демоны-стражи', monsterIcon: '👿', monsterPower: 600, goldReward: 1500, expReward: 300, isBoss: false },
-      { level: 3, monsterName: 'Суккубы и инкубы', monsterIcon: '🦇', monsterPower: 900, goldReward: 2000, expReward: 400, isBoss: false },
-      { level: 4, monsterName: 'Балрог', monsterIcon: '🔥', monsterPower: 1200, goldReward: 3000, expReward: 600, isBoss: false },
-      { level: 5, monsterName: 'Архидемон', monsterIcon: '💀', monsterPower: 1800, goldReward: 5000, expReward: 1000, isBoss: true },
+      { level: 1, monsterName: 'Бесы', monsterIcon: '😈', monsterPower: 200, goldReward: 1200, expReward: 250, isBoss: false },
+      { level: 2, monsterName: 'Демоны-стражи', monsterIcon: '👿', monsterPower: 320, goldReward: 1800, expReward: 400, isBoss: false },
+      { level: 3, monsterName: 'Суккубы и инкубы', monsterIcon: '🦇', monsterPower: 450, goldReward: 2500, expReward: 500, isBoss: false },
+      { level: 4, monsterName: 'Балрог', monsterIcon: '🔥', monsterPower: 600, goldReward: 3500, expReward: 700, isBoss: false },
+      { level: 5, monsterName: 'Архидемон', monsterIcon: '💀', monsterPower: 900, goldReward: 6000, expReward: 1200, isBoss: true },
     ],
   },
   {
