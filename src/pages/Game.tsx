@@ -7,7 +7,10 @@ import { HEROES } from '@/data/heroes';
 import { TOWN_BUILDINGS, COMMON_BUILDINGS } from '@/data/buildings';
 import { getCalendar, isNewWeek, getWeekNumber } from '@/data/calendar';
 import { getArtifactById } from '@/data/artifacts';
-import { Shield, Swords, LogOut, Building2, Users, Sparkles, Coins, BookOpen, Trash2, TrendingUp, Trophy, ScrollText, Package, Store, Flame, Award, CalendarDays, ArrowLeftRight, Castle } from 'lucide-react';
+import { Shield, Swords, LogOut, Building2, Users, Sparkles, Coins, BookOpen, Trash2, TrendingUp, Trophy, ScrollText, Package, Store, Flame, Award, CalendarDays, ArrowLeftRight, Castle, Map } from 'lucide-react';
+import HexMap from '@/components/game/HexMap';
+import { getTileAt, type MapTile } from '@/data/mapTiles';
+import DiceRoller from '@/components/game/DiceRoller';
 import BuildingsScreen from '@/components/game/BuildingsScreen';
 import SpellsScreen from '@/components/game/SpellsScreen';
 import HeroSelection from '@/components/game/HeroSelection';
@@ -30,7 +33,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TownId } from '@/data/towns';
 
-type GameTab = 'tower' | 'army' | 'buildings' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'market' | 'guild' | 'pvp' | 'achievements' | 'events';
+type GameTab = 'map' | 'tower' | 'army' | 'buildings' | 'spells' | 'skills' | 'leaderboard' | 'quests' | 'equipment' | 'trade' | 'market' | 'guild' | 'pvp' | 'achievements' | 'events';
 
 function calculateGrowth(baseGrowth: number, hasCitadel: boolean, hasCastle: boolean): number {
   let growth = baseGrowth;
@@ -44,7 +47,66 @@ const Game = () => {
   const { user, profile, buildings, army, spells, heroSkills, signOut, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
-  const [tab, setTab] = useState<GameTab>('tower');
+  const [tab, setTab] = useState<GameTab>('map');
+  const [diceRoll, setDiceRoll] = useState<number | null>(null);
+  const [revealedTiles, setRevealedTiles] = useState<Set<string>>(() => {
+    if (!user) return new Set();
+    try { const s = localStorage.getItem(`revealed_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set();
+  });
+  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(() => {
+    if (!user) return new Set();
+    try { const s = localStorage.getItem(`defeated_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set();
+  });
+
+  // Reveal tiles around player on load and movement
+  useEffect(() => {
+    if (!profile || !user) return;
+    const pr = profile.map_row || 0;
+    const pc = profile.map_col || 0;
+    setRevealedTiles(prev => {
+      const next = new Set(prev);
+      // Reveal in radius 4
+      const queue = [{ r: pr, c: pc }];
+      const visited = new Set<string>();
+      visited.add(`${pr},${pc}`);
+      next.add(`${pr},${pc}`);
+      for (let step = 0; step < 4; step++) {
+        const frontier: { r: number; c: number }[] = [];
+        for (const p of queue) {
+          const isUp = (p.r + p.c) % 2 === 0;
+          const neighbors = [
+            { r: p.r, c: p.c - 1 }, { r: p.r, c: p.c + 1 },
+            isUp ? { r: p.r + 1, c: p.c } : { r: p.r - 1, c: p.c },
+          ];
+          for (const n of neighbors) {
+            const k = `${n.r},${n.c}`;
+            if (!visited.has(k)) { visited.add(k); next.add(k); frontier.push(n); }
+          }
+        }
+        queue.length = 0;
+        queue.push(...frontier);
+      }
+      localStorage.setItem(`revealed_${user.id}`, JSON.stringify([...next]));
+      return next;
+    });
+  }, [profile?.map_row, profile?.map_col, user]);
+
+  const handleMapMove = useCallback(async (row: number, col: number) => {
+    if (!user) return;
+    await supabase.from('profiles').update({ map_row: row, map_col: col }).eq('user_id', user.id);
+    setDiceRoll(null);
+    await refreshProfile();
+  }, [user, refreshProfile]);
+
+  const handleTileSelect = useCallback((tile: MapTile) => {
+    if (tile.category === 'combat' && !defeatedTiles.has(`${tile.row},${tile.col}`)) {
+      toast.info(`${tile.name} — Сила: ${tile.monsterPower || '?'}`);
+    } else if (tile.goldReward) {
+      toast.info(`${tile.name} — 💰${tile.goldReward}`);
+    }
+  }, [defeatedTiles]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [levelUpPending, setLevelUpPending] = useState(false);
   const [questLeadershipBonus, setQuestLeadershipBonus] = useState<number>(() => {
@@ -283,13 +345,14 @@ const Game = () => {
         <div className="space-y-1 mb-4">
           {[
             [
+              { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
               { id: 'tower' as GameTab, icon: Castle, label: 'БАШНЯ' },
               { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
               { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
               { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
-              { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             ],
             [
+              { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
               { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
               { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
               { id: 'trade' as GameTab, icon: Store, label: 'ЛАВКА' },
@@ -316,6 +379,21 @@ const Game = () => {
             </div>
           ))}
         </div>
+
+        {tab === 'map' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <DiceRoller onRoll={(val) => setDiceRoll(val)} disabled={!!diceRoll} />
+            <HexMap
+              diceRoll={diceRoll}
+              onTileSelect={handleTileSelect}
+              onMove={handleMapMove}
+              revealedTiles={revealedTiles}
+              playerRow={profile?.map_row || 0}
+              playerCol={profile?.map_col || 0}
+              defeatedTiles={defeatedTiles}
+            />
+          </motion.div>
+        )}
 
         {tab === 'tower' && (
           <TowerView />

@@ -27,9 +27,9 @@ interface HexMapProps {
   defeatedTiles: Set<string>;
 }
 
-const TRI_SIZE = 48;
+const TRI_SIZE = 80;
 const TRI_H = TRI_SIZE * Math.sqrt(3) / 2;
-const VIEW_RADIUS = 10;
+const VIEW_RADIUS = 8;
 
 const CATEGORY_FILL: Record<TileCategory, string> = {
   safe:   'hsl(140 45% 55%)',
@@ -66,38 +66,89 @@ const TILE_ICONS: Record<string, string> = {
   artifact: '🎁', dungeon: '🚪', road: '🛤️', grass: '🌿',
 };
 
-// Extra detail labels per category
-function getTileDetails(tile: MapTile, isDefeated: boolean): { icon: string; label: string; sub: string } {
+// Buffs/debuffs/effects per tile category
+function getTileEffects(tile: MapTile): string[] {
+  const effects: string[] = [];
+  if (!tile.passable) return effects;
+  
+  // Combat tiles: show monster + difficulty effects
+  if (tile.category === 'combat') {
+    if (tile.difficulty && tile.difficulty >= 7) effects.push('🔥 Ярость');
+    if (tile.difficulty && tile.difficulty >= 5) effects.push('🛡️ Бронь');
+    if (tile.monsterPower && tile.monsterPower > 100) effects.push('⚡ Мощь');
+    if (tile.difficulty && tile.difficulty <= 2) effects.push('😴 Слабый');
+  }
+  
+  // Random tiles: show buff potential
+  if (tile.category === 'random') {
+    if (tile.goldReward && tile.goldReward > 1000) effects.push('✨ Богатый');
+    if (tile.type === 'mine') effects.push('⚒️ Доход');
+    else effects.push('🎲 Удача');
+  }
+  
+  // Quest tiles
+  if (tile.category === 'quest') {
+    effects.push('📜 Задание');
+    effects.push('⭐ Опыт');
+  }
+  
+  // Mystic tiles: buffs/debuffs
+  if (tile.category === 'mystic') {
+    if (tile.artifactRarity === 'legendary' || tile.artifactRarity === 'epic') effects.push('👑 Реликвия');
+    else if (tile.artifactRarity === 'rare') effects.push('💎 Редкое');
+    else effects.push('🔮 Магия');
+    if (tile.dungeonId) effects.push('⚠️ Опасно');
+  }
+  
+  // Safe tiles: minor buffs
+  if (tile.category === 'safe' && tile.type === 'city') {
+    effects.push('💚 Отдых');
+    effects.push('🏪 Торговля');
+  }
+  if (tile.category === 'safe' && tile.type === 'road') {
+    effects.push('🏃 +Ход');
+  }
+  
+  return effects;
+}
+
+function getTileDetails(tile: MapTile, isDefeated: boolean): { icon: string; label: string; sub: string; effects: string[] } {
+  const effects = getTileEffects(tile);
+  
   if (!tile.passable) {
-    return { icon: TILE_ICONS[tile.type] || '🚫', label: tile.name, sub: '' };
+    return { icon: TILE_ICONS[tile.type] || '🚫', label: tile.name, sub: '', effects: [] };
   }
   if (isDefeated && tile.category === 'combat') {
-    return { icon: '✅', label: 'Побеждено', sub: '' };
+    return { icon: '✅', label: 'Побеждено', sub: '', effects: ['💚 Безопасно'] };
   }
   switch (tile.category) {
     case 'combat':
       return {
         icon: '💀',
         label: tile.name,
-        sub: tile.difficulty ? `⚔${tile.difficulty}` : '',
+        sub: tile.difficulty ? `⚔${tile.difficulty} 💪${tile.monsterPower || '?'}` : '',
+        effects,
       };
     case 'random':
       return {
         icon: tile.type === 'mine' ? '⛏️' : '💰',
         label: tile.name,
         sub: tile.goldReward ? `${tile.goldReward}g` : '',
+        effects,
       };
     case 'quest':
       return {
         icon: '📜',
         label: tile.name,
         sub: 'Задание',
+        effects,
       };
     case 'mystic':
       return {
         icon: tile.type === 'dungeon' ? '🚪' : '🎁',
         label: tile.name,
         sub: tile.artifactRarity || (tile.dungeonId ? 'Данж' : ''),
+        effects,
       };
     case 'safe':
     default:
@@ -105,6 +156,7 @@ function getTileDetails(tile: MapTile, isDefeated: boolean): { icon: string; lab
         icon: TILE_ICONS[tile.type] || '🌿',
         label: tile.name,
         sub: '',
+        effects,
       };
   }
 }
@@ -283,20 +335,26 @@ const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles, onAttackPlayer,
                 <polygon points={points} fill="hsl(0 0% 100%)" opacity={0.15} stroke="none" />
               )}
 
-              {/* Tile content — icon + label */}
+              {/* Tile content — icon + label + effects */}
               {isVisible && !isCurrentPos && !hasEnemy && (
                 <>
-                  <text x={x} y={y - 4} textAnchor="middle" dominantBaseline="central" fontSize={14}>
+                  <text x={x} y={y - 12} textAnchor="middle" dominantBaseline="central" fontSize={18}>
                     {details.icon}
                   </text>
-                  <text x={x} y={y + 10} textAnchor="middle" dominantBaseline="central" fontSize={6} fill="hsl(0 0% 100%)" fontWeight="600" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
-                    {details.label.length > 10 ? details.label.slice(0, 9) + '…' : details.label}
+                  <text x={x} y={y + 4} textAnchor="middle" dominantBaseline="central" fontSize={8} fill="hsl(0 0% 100%)" fontWeight="600" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
+                    {details.label.length > 12 ? details.label.slice(0, 11) + '…' : details.label}
                   </text>
                   {details.sub && (
-                    <text x={x} y={y + 18} textAnchor="middle" dominantBaseline="central" fontSize={5} fill="hsl(45 80% 70%)" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
+                    <text x={x} y={y + 14} textAnchor="middle" dominantBaseline="central" fontSize={7} fill="hsl(45 80% 70%)" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
                       {details.sub}
                     </text>
                   )}
+                  {/* Effects / buffs / debuffs */}
+                  {details.effects.slice(0, 2).map((effect, ei) => (
+                    <text key={ei} x={x} y={y + 23 + ei * 9} textAnchor="middle" dominantBaseline="central" fontSize={6} fill="hsl(180 60% 75%)" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
+                      {effect}
+                    </text>
+                  ))}
                 </>
               )}
 
