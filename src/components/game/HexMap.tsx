@@ -27,9 +27,9 @@ interface HexMapProps {
   defeatedTiles: Set<string>;
 }
 
-const TRI_SIZE = 48;
+const TRI_SIZE = 80;
 const TRI_H = TRI_SIZE * Math.sqrt(3) / 2;
-const VIEW_RADIUS = 10;
+const VIEW_RADIUS = 8;
 
 const CATEGORY_FILL: Record<TileCategory, string> = {
   safe:   'hsl(140 45% 55%)',
