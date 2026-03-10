@@ -352,6 +352,7 @@ const Game = () => {
               { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
             ],
             [
+              { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
               { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
               { id: 'quests' as GameTab, icon: ScrollText, label: 'КВЕСТЫ' },
               { id: 'trade' as GameTab, icon: Store, label: 'ЛАВКА' },
