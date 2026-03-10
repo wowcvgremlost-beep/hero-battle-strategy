@@ -66,38 +66,89 @@ const TILE_ICONS: Record<string, string> = {
   artifact: '🎁', dungeon: '🚪', road: '🛤️', grass: '🌿',
 };
 
-// Extra detail labels per category
-function getTileDetails(tile: MapTile, isDefeated: boolean): { icon: string; label: string; sub: string } {
+// Buffs/debuffs/effects per tile category
+function getTileEffects(tile: MapTile): string[] {
+  const effects: string[] = [];
+  if (!tile.passable) return effects;
+  
+  // Combat tiles: show monster + difficulty effects
+  if (tile.category === 'combat') {
+    if (tile.difficulty && tile.difficulty >= 7) effects.push('🔥 Ярость');
+    if (tile.difficulty && tile.difficulty >= 5) effects.push('🛡️ Бронь');
+    if (tile.monsterPower && tile.monsterPower > 100) effects.push('⚡ Мощь');
+    if (tile.difficulty && tile.difficulty <= 2) effects.push('😴 Слабый');
+  }
+  
+  // Random tiles: show buff potential
+  if (tile.category === 'random') {
+    if (tile.goldReward && tile.goldReward > 1000) effects.push('✨ Богатый');
+    if (tile.type === 'mine') effects.push('⚒️ Доход');
+    else effects.push('🎲 Удача');
+  }
+  
+  // Quest tiles
+  if (tile.category === 'quest') {
+    effects.push('📜 Задание');
+    effects.push('⭐ Опыт');
+  }
+  
+  // Mystic tiles: buffs/debuffs
+  if (tile.category === 'mystic') {
+    if (tile.artifactRarity === 'legendary' || tile.artifactRarity === 'epic') effects.push('👑 Реликвия');
+    else if (tile.artifactRarity === 'rare') effects.push('💎 Редкое');
+    else effects.push('🔮 Магия');
+    if (tile.dungeonId) effects.push('⚠️ Опасно');
+  }
+  
+  // Safe tiles: minor buffs
+  if (tile.category === 'safe' && tile.type === 'city') {
+    effects.push('💚 Отдых');
+    effects.push('🏪 Торговля');
+  }
+  if (tile.category === 'safe' && tile.type === 'road') {
+    effects.push('🏃 +Ход');
+  }
+  
+  return effects;
+}
+
+function getTileDetails(tile: MapTile, isDefeated: boolean): { icon: string; label: string; sub: string; effects: string[] } {
+  const effects = getTileEffects(tile);
+  
   if (!tile.passable) {
-    return { icon: TILE_ICONS[tile.type] || '🚫', label: tile.name, sub: '' };
+    return { icon: TILE_ICONS[tile.type] || '🚫', label: tile.name, sub: '', effects: [] };
   }
   if (isDefeated && tile.category === 'combat') {
-    return { icon: '✅', label: 'Побеждено', sub: '' };
+    return { icon: '✅', label: 'Побеждено', sub: '', effects: ['💚 Безопасно'] };
   }
   switch (tile.category) {
     case 'combat':
       return {
         icon: '💀',
         label: tile.name,
-        sub: tile.difficulty ? `⚔${tile.difficulty}` : '',
+        sub: tile.difficulty ? `⚔${tile.difficulty} 💪${tile.monsterPower || '?'}` : '',
+        effects,
       };
     case 'random':
       return {
         icon: tile.type === 'mine' ? '⛏️' : '💰',
         label: tile.name,
         sub: tile.goldReward ? `${tile.goldReward}g` : '',
+        effects,
       };
     case 'quest':
       return {
         icon: '📜',
         label: tile.name,
         sub: 'Задание',
+        effects,
       };
     case 'mystic':
       return {
         icon: tile.type === 'dungeon' ? '🚪' : '🎁',
         label: tile.name,
         sub: tile.artifactRarity || (tile.dungeonId ? 'Данж' : ''),
+        effects,
       };
     case 'safe':
     default:
@@ -105,6 +156,7 @@ function getTileDetails(tile: MapTile, isDefeated: boolean): { icon: string; lab
         icon: TILE_ICONS[tile.type] || '🌿',
         label: tile.name,
         sub: '',
+        effects,
       };
   }
 }
