@@ -335,20 +335,26 @@ const HexMap = ({ diceRoll, onTileSelect, onMove, revealedTiles, onAttackPlayer,
                 <polygon points={points} fill="hsl(0 0% 100%)" opacity={0.15} stroke="none" />
               )}
 
-              {/* Tile content — icon + label */}
+              {/* Tile content — icon + label + effects */}
               {isVisible && !isCurrentPos && !hasEnemy && (
                 <>
-                  <text x={x} y={y - 4} textAnchor="middle" dominantBaseline="central" fontSize={14}>
+                  <text x={x} y={y - 12} textAnchor="middle" dominantBaseline="central" fontSize={18}>
                     {details.icon}
                   </text>
-                  <text x={x} y={y + 10} textAnchor="middle" dominantBaseline="central" fontSize={6} fill="hsl(0 0% 100%)" fontWeight="600" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
-                    {details.label.length > 10 ? details.label.slice(0, 9) + '…' : details.label}
+                  <text x={x} y={y + 4} textAnchor="middle" dominantBaseline="central" fontSize={8} fill="hsl(0 0% 100%)" fontWeight="600" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
+                    {details.label.length > 12 ? details.label.slice(0, 11) + '…' : details.label}
                   </text>
                   {details.sub && (
-                    <text x={x} y={y + 18} textAnchor="middle" dominantBaseline="central" fontSize={5} fill="hsl(45 80% 70%)" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
+                    <text x={x} y={y + 14} textAnchor="middle" dominantBaseline="central" fontSize={7} fill="hsl(45 80% 70%)" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
                       {details.sub}
                     </text>
                   )}
+                  {/* Effects / buffs / debuffs */}
+                  {details.effects.slice(0, 2).map((effect, ei) => (
+                    <text key={ei} x={x} y={y + 23 + ei * 9} textAnchor="middle" dominantBaseline="central" fontSize={6} fill="hsl(180 60% 75%)" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}>
+                      {effect}
+                    </text>
+                  ))}
                 </>
               )}
 
