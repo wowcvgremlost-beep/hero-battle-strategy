@@ -345,11 +345,11 @@ const Game = () => {
         <div className="space-y-1 mb-4">
           {[
             [
+              { id: 'map' as GameTab, icon: Map, label: 'КАРТА' },
               { id: 'tower' as GameTab, icon: Castle, label: 'БАШНЯ' },
               { id: 'army' as GameTab, icon: Users, label: 'АРМИЯ' },
               { id: 'buildings' as GameTab, icon: Building2, label: 'ГОРОД' },
               { id: 'equipment' as GameTab, icon: Package, label: 'СНАРЯ' },
-              { id: 'spells' as GameTab, icon: Sparkles, label: 'МАГИЯ' },
             ],
             [
               { id: 'skills' as GameTab, icon: TrendingUp, label: 'НАВЫКИ' },
