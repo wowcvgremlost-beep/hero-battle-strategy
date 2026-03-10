@@ -23,8 +23,8 @@ interface KillRecord {
   killed_at: string;
 }
 
-const CELL_SIZE = 28;
-const VIEWPORT_CELLS = 9; // visible cells in each direction
+const CELL_SIZE = 48;
+const VIEWPORT_CELLS = 6; // visible cells in each direction
 
 const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFloorMapProps) => {
   const { user, profile, heroSkills, updateGold, updateHeroStats } = useAuth();
