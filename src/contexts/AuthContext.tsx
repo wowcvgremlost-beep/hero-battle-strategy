@@ -93,20 +93,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
-      if (error || !data) {
-        // Profile was deleted or missing — recreate it
-        console.warn('Profile missing, recreating...', error?.message);
+      if (!data) {
+        console.warn('Profile missing, recreating...');
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .insert({ user_id: userId })
           .select('*')
-          .single();
+          .maybeSingle();
         if (insertError) {
           console.error('Failed to recreate profile:', insertError.message);
         }
@@ -226,20 +225,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     doTelegramAuth();
   }, [tgReady, isTelegram, initData]);
 
-  // Standard auth listener — single entry point to avoid lock conflicts
+  // Initialize auth - get session first, then listen for changes
   useEffect(() => {
-    let initialDone = false;
+    let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        initialDone = true;
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
+    const initAuth = async () => {
+      try {
+        // First, check existing session
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setUser(currentSession.user);
           try {
-            await loadAllData(session.user.id);
+            await loadAllData(currentSession.user.id);
           } catch (err) {
-            console.error('loadAllData failed:', err);
+            console.error('Initial loadAllData failed:', err);
+          }
+        } else {
+          // No valid session - clear everything
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error('getSession failed:', err);
+        // Try to clear broken session
+        await supabase.auth.signOut().catch(() => {});
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+      }
+      
+      if (mounted) {
+        setLoading(false);
+      }
+    };
+
+    // Set up listener for auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (!mounted) return;
+        
+        // Skip INITIAL_SESSION - we handle it above with getSession
+        if (event === 'INITIAL_SESSION') return;
+        
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (newSession?.user) {
+          try {
+            await loadAllData(newSession.user.id);
+          } catch (err) {
+            console.error('onAuthStateChange loadAllData failed:', err);
           }
         } else {
           setProfile(null);
@@ -252,37 +294,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Fallback: if onAuthStateChange doesn't fire within 3s (non-Telegram), resolve loading
-    const timeout = setTimeout(async () => {
-      if (!initialDone) {
-        try {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          if (error || !session) {
-            await supabase.auth.signOut().catch(() => {});
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-          } else {
-            setSession(session);
-            setUser(session.user);
-            try {
-              await loadAllData(session.user.id);
-            } catch (e) {
-              console.error('Fallback loadAllData failed:', e);
-            }
-          }
-        } catch {
-          setSession(null);
-          setUser(null);
+    // Start init - for non-Telegram, run immediately
+    // For Telegram, wait a bit for telegram auth to set session first
+    if (isTelegram) {
+      // Give telegram auth time to complete, then init
+      const tgTimeout = setTimeout(() => initAuth(), 5000);
+      // But also listen - if onAuthStateChange fires from setSession, it'll handle it
+      // Safety: ensure loading resolves after 10s max
+      const safetyTimeout = setTimeout(() => {
+        if (mounted && loading) {
+          console.warn('Safety timeout: forcing loading=false');
+          setLoading(false);
         }
-        setLoading(false);
-      }
-    }, isTelegram ? 8000 : 3000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
+      }, 10000);
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+        clearTimeout(tgTimeout);
+        clearTimeout(safetyTimeout);
+      };
+    } else {
+      initAuth();
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const signOut = async () => {
