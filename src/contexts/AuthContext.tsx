@@ -92,22 +92,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { isTelegram, initData, user: tgUser, isReady: tgReady } = useTelegramWebApp();
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    
-    if (!data) {
-      // Profile was deleted — recreate it
-      const { data: newProfile } = await supabase
+    try {
+      const { data, error } = await supabase
         .from('profiles')
-        .insert({ user_id: userId })
         .select('*')
+        .eq('user_id', userId)
         .single();
-      setProfile(newProfile as Profile | null);
-    } else {
-      setProfile(data as Profile | null);
+      
+      if (error || !data) {
+        // Profile was deleted or missing — recreate it
+        console.warn('Profile missing, recreating...', error?.message);
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({ user_id: userId })
+          .select('*')
+          .single();
+        if (insertError) {
+          console.error('Failed to recreate profile:', insertError.message);
+        }
+        setProfile(newProfile as Profile | null);
+      } else {
+        setProfile(data as Profile | null);
+      }
+    } catch (err) {
+      console.error('fetchProfile error:', err);
+      setProfile(null);
     }
   };
 
