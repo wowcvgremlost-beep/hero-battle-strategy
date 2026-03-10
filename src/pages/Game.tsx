@@ -47,7 +47,66 @@ const Game = () => {
   const { user, profile, buildings, army, spells, heroSkills, signOut, updateGold, updateMana, updateHeroStats, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills } = useAuth();
   const town = TOWNS.find((t) => t.id === profile?.town);
   const hero = HEROES.find(h => h.id === profile?.hero_id);
-  const [tab, setTab] = useState<GameTab>('tower');
+  const [tab, setTab] = useState<GameTab>('map');
+  const [diceRoll, setDiceRoll] = useState<number | null>(null);
+  const [revealedTiles, setRevealedTiles] = useState<Set<string>>(() => {
+    if (!user) return new Set();
+    try { const s = localStorage.getItem(`revealed_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set();
+  });
+  const [defeatedTiles, setDefeatedTiles] = useState<Set<string>>(() => {
+    if (!user) return new Set();
+    try { const s = localStorage.getItem(`defeated_${user.id}`); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set();
+  });
+
+  // Reveal tiles around player on load and movement
+  useEffect(() => {
+    if (!profile || !user) return;
+    const pr = profile.map_row || 0;
+    const pc = profile.map_col || 0;
+    setRevealedTiles(prev => {
+      const next = new Set(prev);
+      // Reveal in radius 4
+      const queue = [{ r: pr, c: pc }];
+      const visited = new Set<string>();
+      visited.add(`${pr},${pc}`);
+      next.add(`${pr},${pc}`);
+      for (let step = 0; step < 4; step++) {
+        const frontier: { r: number; c: number }[] = [];
+        for (const p of queue) {
+          const isUp = (p.r + p.c) % 2 === 0;
+          const neighbors = [
+            { r: p.r, c: p.c - 1 }, { r: p.r, c: p.c + 1 },
+            isUp ? { r: p.r + 1, c: p.c } : { r: p.r - 1, c: p.c },
+          ];
+          for (const n of neighbors) {
+            const k = `${n.r},${n.c}`;
+            if (!visited.has(k)) { visited.add(k); next.add(k); frontier.push(n); }
+          }
+        }
+        queue.length = 0;
+        queue.push(...frontier);
+      }
+      localStorage.setItem(`revealed_${user.id}`, JSON.stringify([...next]));
+      return next;
+    });
+  }, [profile?.map_row, profile?.map_col, user]);
+
+  const handleMapMove = useCallback(async (row: number, col: number) => {
+    if (!user) return;
+    await supabase.from('profiles').update({ map_row: row, map_col: col }).eq('user_id', user.id);
+    setDiceRoll(null);
+    await refreshProfile();
+  }, [user, refreshProfile]);
+
+  const handleTileSelect = useCallback((tile: MapTile) => {
+    if (tile.category === 'combat' && !defeatedTiles.has(`${tile.row},${tile.col}`)) {
+      toast.info(`${tile.name} — Сила: ${tile.monsterPower || '?'}`);
+    } else if (tile.goldReward) {
+      toast.info(`${tile.name} — 💰${tile.goldReward}`);
+    }
+  }, [defeatedTiles]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [levelUpPending, setLevelUpPending] = useState(false);
   const [questLeadershipBonus, setQuestLeadershipBonus] = useState<number>(() => {
