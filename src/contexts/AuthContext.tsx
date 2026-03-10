@@ -93,20 +93,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
-      if (error || !data) {
-        // Profile was deleted or missing — recreate it
-        console.warn('Profile missing, recreating...', error?.message);
+      if (!data) {
+        console.warn('Profile missing, recreating...');
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .insert({ user_id: userId })
           .select('*')
-          .single();
+          .maybeSingle();
         if (insertError) {
           console.error('Failed to recreate profile:', insertError.message);
         }
