@@ -23,8 +23,8 @@ interface KillRecord {
   killed_at: string;
 }
 
-const CELL_SIZE = 28;
-const VIEWPORT_CELLS = 9; // visible cells in each direction
+const CELL_SIZE = 48;
+const VIEWPORT_CELLS = 6; // visible cells in each direction
 
 const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFloorMapProps) => {
   const { user, profile, heroSkills, updateGold, updateHeroStats } = useAuth();
@@ -272,42 +272,56 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
       let content: React.ReactNode = null;
       let bg = 'bg-secondary/20';
       let border = 'border-border/10';
+      let label = '';
+      let sublabel = '';
 
       if (!isRevealed) {
         bg = 'bg-muted/90';
         border = 'border-muted/40';
       } else if (isPlayer) {
-        content = <span className="text-xs">🧙</span>;
+        content = <span className="text-lg">🧙</span>;
+        label = 'Вы';
         bg = 'bg-arcane/25';
         border = 'border-arcane/50';
       } else if (isWall) {
-        content = <span className="text-[8px] opacity-30">🧱</span>;
+        content = <span className="text-sm opacity-30">🧱</span>;
         bg = 'bg-muted/60';
         border = 'border-muted/30';
       } else if (isExit && !bossDead) {
-        content = <span className="text-xs">{floor.boss.icon}</span>;
+        content = <span className="text-lg">{floor.boss.icon}</span>;
+        label = 'Босс';
+        sublabel = `⚔${floor.boss.power}`;
         bg = 'bg-gold/15';
         border = 'border-gold/40';
       } else if (isExit && bossDead) {
-        content = <span className="text-[8px]">🚪</span>;
+        content = <span className="text-sm">🚪</span>;
+        label = 'Выход';
         bg = 'bg-emerald/15';
         border = 'border-emerald/30';
       } else if (isEntrance) {
-        content = <span className="text-[8px]">🔽</span>;
+        content = <span className="text-sm">🔽</span>;
+        label = 'Вход';
         bg = 'bg-secondary/40';
       } else if (monster && !monsterDead) {
-        content = <span className="text-xs">{monster.icon}</span>;
+        content = <span className="text-lg">{monster.icon}</span>;
+        label = monster.name.length > 7 ? monster.name.slice(0, 6) + '…' : monster.name;
+        sublabel = `⚔${monster.power}`;
+        if (monster.isBoss) sublabel += ' 👑';
         bg = 'bg-crimson/10';
         border = 'border-crimson/25';
       } else if (monster && monsterDead) {
-        content = <span className="text-[6px]">💤</span>;
-        bg = 'bg-secondary/10 opacity-30';
+        const respawn = getRespawnTime(monster.id, monster.isBoss);
+        content = <span className="text-xs">💤</span>;
+        if (respawn) sublabel = respawn;
+        bg = 'bg-secondary/10 opacity-40';
       } else if (quest && !completedQuests.has(quest.id)) {
-        content = <span className="text-xs">{quest.icon}</span>;
+        content = <span className="text-lg">{quest.icon}</span>;
+        label = quest.name.length > 7 ? quest.name.slice(0, 6) + '…' : quest.name;
+        sublabel = `💰${quest.goldReward}`;
         bg = 'bg-gold/10';
         border = 'border-gold/20';
       } else if (quest && completedQuests.has(quest.id)) {
-        content = <span className="text-[7px] opacity-30">✓</span>;
+        content = <span className="text-xs opacity-30">✓</span>;
       }
       // Traps stay hidden
 
@@ -322,11 +336,13 @@ const TowerFloorMap = ({ floor, onBack, unlockedFloors, onUnlockFloor }: TowerFl
             width: CELL_SIZE,
             height: CELL_SIZE,
           }}
-          className={`border flex items-center justify-center ${bg} ${border} ${
+          className={`border flex flex-col items-center justify-center gap-0 ${bg} ${border} ${
             isRevealed && isAdjacent && !isWall && !isPlayer ? 'cursor-pointer hover:brightness-150 ring-1 ring-foreground/5' : ''
           }`}
         >
           {content}
+          {label && <span className="text-[7px] text-foreground/80 leading-none font-semibold truncate max-w-full px-0.5">{label}</span>}
+          {sublabel && <span className="text-[6px] text-gold leading-none font-bold">{sublabel}</span>}
         </div>
       );
     }
