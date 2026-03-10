@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp';
 import type { User, Session } from '@supabase/supabase-js';
@@ -25,27 +25,10 @@ interface Profile {
   built_this_turn: boolean;
 }
 
-interface PlayerBuilding {
-  id: string;
-  building_id: string;
-}
-
-interface PlayerArmy {
-  id: string;
-  unit_name: string;
-  count: number;
-}
-
-interface PlayerSpell {
-  id: string;
-  spell_id: string;
-}
-
-interface HeroSkill {
-  id: string;
-  skill_id: string;
-  skill_level: number;
-}
+interface PlayerBuilding { id: string; building_id: string; }
+interface PlayerArmy { id: string; unit_name: string; count: number; }
+interface PlayerSpell { id: string; spell_id: string; }
+interface HeroSkill { id: string; skill_id: string; skill_level: number; }
 
 interface AuthContextType {
   user: User | null;
@@ -90,15 +73,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [heroSkills, setHeroSkills] = useState<HeroSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const { isTelegram, initData, user: tgUser, isReady: tgReady } = useTelegramWebApp();
+  const userRef = useRef<User | null>(null);
+
+  // Keep ref in sync for use in update functions
+  useEffect(() => { userRef.current = user; }, [user]);
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
       
+      if (error) {
+        console.error('fetchProfile query error:', error.message);
+        setProfile(null);
+        return;
+      }
+
       if (!data) {
         console.warn('Profile missing, recreating...');
         const { data: newProfile, error: insertError } = await supabase
@@ -109,9 +102,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (insertError) {
           console.error('Failed to recreate profile:', insertError.message);
         }
-        setProfile(newProfile as Profile | null);
+        setProfile((newProfile as Profile) || null);
       } else {
-        setProfile(data as Profile | null);
+        setProfile(data as Profile);
       }
     } catch (err) {
       console.error('fetchProfile error:', err);
@@ -120,33 +113,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchBuildings = async (userId: string) => {
-    const { data } = await supabase.from('player_buildings').select('id, building_id').eq('user_id', userId);
-    setBuildings((data as PlayerBuilding[]) || []);
+    try {
+      const { data } = await supabase.from('player_buildings').select('id, building_id').eq('user_id', userId);
+      setBuildings((data as PlayerBuilding[]) || []);
+    } catch { setBuildings([]); }
   };
 
   const fetchArmy = async (userId: string) => {
-    const { data } = await supabase.from('player_army').select('id, unit_name, count').eq('user_id', userId);
-    setArmy((data as PlayerArmy[]) || []);
+    try {
+      const { data } = await supabase.from('player_army').select('id, unit_name, count').eq('user_id', userId);
+      setArmy((data as PlayerArmy[]) || []);
+    } catch { setArmy([]); }
   };
 
   const fetchSpells = async (userId: string) => {
-    const { data } = await supabase.from('player_spells').select('id, spell_id').eq('user_id', userId);
-    setSpells((data as PlayerSpell[]) || []);
+    try {
+      const { data } = await supabase.from('player_spells').select('id, spell_id').eq('user_id', userId);
+      setSpells((data as PlayerSpell[]) || []);
+    } catch { setSpells([]); }
   };
 
   const fetchHeroSkills = async (userId: string) => {
-    const { data } = await supabase.from('hero_skills').select('id, skill_id, skill_level').eq('user_id', userId);
-    setHeroSkills((data as HeroSkill[]) || []);
+    try {
+      const { data } = await supabase.from('hero_skills').select('id, skill_id, skill_level').eq('user_id', userId);
+      setHeroSkills((data as HeroSkill[]) || []);
+    } catch { setHeroSkills([]); }
   };
 
-  const refreshProfile = async () => { if (user) await fetchProfile(user.id); };
-  const refreshBuildings = async () => { if (user) await fetchBuildings(user.id); };
-  const refreshArmy = async () => { if (user) await fetchArmy(user.id); };
-  const refreshSpells = async () => { if (user) await fetchSpells(user.id); };
-  const refreshHeroSkills = async () => { if (user) await fetchHeroSkills(user.id); };
+  const refreshProfile = async () => { if (userRef.current) await fetchProfile(userRef.current.id); };
+  const refreshBuildings = async () => { if (userRef.current) await fetchBuildings(userRef.current.id); };
+  const refreshArmy = async () => { if (userRef.current) await fetchArmy(userRef.current.id); };
+  const refreshSpells = async () => { if (userRef.current) await fetchSpells(userRef.current.id); };
+  const refreshHeroSkills = async () => { if (userRef.current) await fetchHeroSkills(userRef.current.id); };
 
   const loadAllData = async (userId: string) => {
+    // Fetch profile first (critical), others in parallel
     await fetchProfile(userId);
+    // Fire and forget the rest
     fetchBuildings(userId);
     fetchArmy(userId);
     fetchSpells(userId);
@@ -154,39 +157,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateGold = async (newGold: number) => {
-    if (!user) return;
-    await supabase.from('profiles').update({ gold: newGold }).eq('user_id', user.id);
+    if (!userRef.current) return;
+    await supabase.from('profiles').update({ gold: newGold }).eq('user_id', userRef.current.id);
     await refreshProfile();
   };
 
   const updateMana = async (newMana: number) => {
-    if (!user) return;
-    await supabase.from('profiles').update({ mana: newMana }).eq('user_id', user.id);
+    if (!userRef.current) return;
+    await supabase.from('profiles').update({ mana: newMana }).eq('user_id', userRef.current.id);
     await refreshProfile();
   };
 
   const updateMapPosition = async (row: number, col: number) => {
-    if (!user) return;
-    await supabase.from('profiles').update({ map_row: row, map_col: col }).eq('user_id', user.id);
+    if (!userRef.current) return;
+    await supabase.from('profiles').update({ map_row: row, map_col: col }).eq('user_id', userRef.current.id);
     await refreshProfile();
   };
 
   const updateDay = async (newDay: number) => {
-    if (!user) return;
-    await supabase.from('profiles').update({ day: newDay, built_this_turn: false }).eq('user_id', user.id);
+    if (!userRef.current) return;
+    await supabase.from('profiles').update({ day: newDay, built_this_turn: false }).eq('user_id', userRef.current.id);
     await refreshProfile();
   };
 
   const updateHeroStats = async (stats: Partial<Pick<Profile, 'hero_attack' | 'hero_defense' | 'hero_spellpower' | 'hero_knowledge' | 'hero_level' | 'hero_experience'>>) => {
-    if (!user) return;
-    await supabase.from('profiles').update(stats).eq('user_id', user.id);
+    if (!userRef.current) return;
+    await supabase.from('profiles').update(stats).eq('user_id', userRef.current.id);
     await refreshProfile();
   };
 
   const setBuiltThisTurn = async (val: boolean) => {
-    if (!user) return;
-    await supabase.from('profiles').update({ built_this_turn: val }).eq('user_id', user.id);
+    if (!userRef.current) return;
+    await supabase.from('profiles').update({ built_this_turn: val }).eq('user_id', userRef.current.id);
     await refreshProfile();
+  };
+
+  const handleSession = async (newSession: Session | null) => {
+    setSession(newSession);
+    setUser(newSession?.user ?? null);
+    
+    if (newSession?.user) {
+      try {
+        await loadAllData(newSession.user.id);
+      } catch (err) {
+        console.error('loadAllData failed:', err);
+      }
+    } else {
+      setProfile(null);
+      setBuildings([]);
+      setArmy([]);
+      setSpells([]);
+      setHeroSkills([]);
+    }
+    setLoading(false);
   };
 
   // Telegram auth
@@ -215,6 +238,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             access_token: result.session.access_token,
             refresh_token: result.session.refresh_token,
           });
+          // onAuthStateChange will handle the rest
+        } else {
+          setLoading(false);
         }
       } catch (err) {
         console.error('Telegram auth failed:', err);
@@ -225,101 +251,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     doTelegramAuth();
   }, [tgReady, isTelegram, initData]);
 
-  // Initialize auth - get session first, then listen for changes
+  // Main auth initialization
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
-      try {
-        // First, check existing session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        if (currentSession?.user) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          try {
-            await loadAllData(currentSession.user.id);
-          } catch (err) {
-            console.error('Initial loadAllData failed:', err);
-          }
-        } else {
-          // No valid session - clear everything
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-        }
-      } catch (err) {
-        console.error('getSession failed:', err);
-        // Try to clear broken session
-        await supabase.auth.signOut().catch(() => {});
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-        }
-      }
-      
-      if (mounted) {
-        setLoading(false);
-      }
-    };
-
-    // Set up listener for auth changes (login, logout, token refresh)
+    // 1. Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      async (_event, newSession) => {
         if (!mounted) return;
-        
-        // Skip INITIAL_SESSION - we handle it above with getSession
-        if (event === 'INITIAL_SESSION') return;
-        
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          try {
-            await loadAllData(newSession.user.id);
-          } catch (err) {
-            console.error('onAuthStateChange loadAllData failed:', err);
-          }
-        } else {
-          setProfile(null);
-          setBuildings([]);
-          setArmy([]);
-          setSpells([]);
-          setHeroSkills([]);
-        }
-        setLoading(false);
+        console.log('Auth state change:', _event);
+        await handleSession(newSession);
       }
     );
 
-    // Start init - for non-Telegram, run immediately
-    // For Telegram, wait a bit for telegram auth to set session first
-    if (isTelegram) {
-      // Give telegram auth time to complete, then init
-      const tgTimeout = setTimeout(() => initAuth(), 5000);
-      // But also listen - if onAuthStateChange fires from setSession, it'll handle it
-      // Safety: ensure loading resolves after 10s max
-      const safetyTimeout = setTimeout(() => {
-        if (mounted && loading) {
-          console.warn('Safety timeout: forcing loading=false');
-          setLoading(false);
-        }
-      }, 10000);
-      return () => {
-        mounted = false;
-        subscription.unsubscribe();
-        clearTimeout(tgTimeout);
-        clearTimeout(safetyTimeout);
-      };
-    } else {
-      initAuth();
-      return () => {
-        mounted = false;
-        subscription.unsubscribe();
-      };
-    }
+    // 2. Safety timeout - ALWAYS stop loading after 8 seconds no matter what
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        console.warn('Safety timeout: forcing loading=false');
+        setLoading(false);
+      }
+    }, 8000);
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   const signOut = async () => {
