@@ -213,7 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => loadAllData(session.user.id), 0);
+          await loadAllData(session.user.id);
         } else {
           setProfile(null);
           setBuildings([]);
@@ -225,11 +225,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadAllData(session.user.id);
+        await loadAllData(session.user.id);
       }
       // Only set loading false if not telegram (telegram will set it after auth)
       if (!isTelegram) {
