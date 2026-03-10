@@ -52,16 +52,18 @@ const MainMenu = () => {
         </motion.button>
       </div>
 
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        onClick={signOut}
-        className="mt-10 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="text-sm">Выйти</span>
-      </motion.button>
+      {!isTelegram && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          onClick={signOut}
+          className="mt-10 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm">Выйти</span>
+        </motion.button>
+      )}
     </div>
   );
 };
