@@ -227,7 +227,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await loadAllData(session.user.id);
+          try {
+            await loadAllData(session.user.id);
+          } catch (err) {
+            console.error('loadAllData failed:', err);
+          }
         } else {
           setProfile(null);
           setBuildings([]);
