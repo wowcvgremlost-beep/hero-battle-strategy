@@ -206,10 +206,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     doTelegramAuth();
   }, [tgReady, isTelegram, initData]);
 
-  // Standard auth listener
+  // Standard auth listener — single entry point to avoid lock conflicts
   useEffect(() => {
+    let initialDone = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        initialDone = true;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -225,19 +228,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await loadAllData(session.user.id);
-      }
-      // Only set loading false if not telegram (telegram will set it after auth)
-      if (!isTelegram) {
+    // Fallback: if onAuthStateChange doesn't fire within 3s (non-Telegram), resolve loading
+    const timeout = setTimeout(async () => {
+      if (!initialDone) {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await loadAllData(session.user.id);
+        }
         setLoading(false);
       }
-    });
+    }, isTelegram ? 8000 : 3000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signOut = async () => {
