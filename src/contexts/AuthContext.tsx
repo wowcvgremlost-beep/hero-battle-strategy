@@ -231,11 +231,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Fallback: if onAuthStateChange doesn't fire within 3s (non-Telegram), resolve loading
     const timeout = setTimeout(async () => {
       if (!initialDone) {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadAllData(session.user.id);
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error || !session) {
+            // Clear any stale/broken session
+            await supabase.auth.signOut().catch(() => {});
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+          } else {
+            setSession(session);
+            setUser(session.user);
+            await loadAllData(session.user.id);
+          }
+        } catch {
+          setSession(null);
+          setUser(null);
         }
         setLoading(false);
       }
