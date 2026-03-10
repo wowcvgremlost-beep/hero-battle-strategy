@@ -379,6 +379,21 @@ const Game = () => {
           ))}
         </div>
 
+        {tab === 'map' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <DiceRoller onRoll={(val) => setDiceRoll(val)} disabled={!!diceRoll} />
+            <HexMap
+              diceRoll={diceRoll}
+              onTileSelect={handleTileSelect}
+              onMove={handleMapMove}
+              revealedTiles={revealedTiles}
+              playerRow={profile?.map_row || 0}
+              playerCol={profile?.map_col || 0}
+              defeatedTiles={defeatedTiles}
+            />
+          </motion.div>
+        )}
+
         {tab === 'tower' && (
           <TowerView />
         )}
