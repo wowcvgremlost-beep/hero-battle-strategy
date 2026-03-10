@@ -37,8 +37,13 @@ const CharacterCreate = () => {
         })
         .eq('user_id', user.id);
       if (error) throw error;
-      await refreshProfile();
       toast.success('Персонаж создан!');
+      // Force refresh profile and wait for state update
+      await refreshProfile();
+      // Fallback: reload if state didn't update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err: any) {
       toast.error(err.message || 'Ошибка создания персонажа');
     } finally {
