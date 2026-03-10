@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTelegramWebApp } from '@/hooks/useTelegramWebApp';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface Profile {
@@ -55,6 +56,8 @@ interface AuthContextType {
   spells: PlayerSpell[];
   heroSkills: HeroSkill[];
   loading: boolean;
+  isTelegram: boolean;
+  telegramUser: { id: number; first_name: string; last_name?: string; username?: string } | null;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshBuildings: () => Promise<void>;
@@ -86,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [spells, setSpells] = useState<PlayerSpell[]>([]);
   const [heroSkills, setHeroSkills] = useState<HeroSkill[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isTelegram, initData, user: tgUser, isReady: tgReady } = useTelegramWebApp();
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -121,6 +125,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshArmy = async () => { if (user) await fetchArmy(user.id); };
   const refreshSpells = async () => { if (user) await fetchSpells(user.id); };
   const refreshHeroSkills = async () => { if (user) await fetchHeroSkills(user.id); };
+
+  const loadAllData = (userId: string) => {
+    fetchProfile(userId);
+    fetchBuildings(userId);
+    fetchArmy(userId);
+    fetchSpells(userId);
+    fetchHeroSkills(userId);
+  };
 
   const updateGold = async (newGold: number) => {
     if (!user) return;
@@ -158,19 +170,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await refreshProfile();
   };
 
+  // Telegram auth
+  useEffect(() => {
+    if (!tgReady || !isTelegram || !initData) return;
+
+    const doTelegramAuth = async () => {
+      try {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/telegram-auth`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData }),
+          }
+        );
+        const result = await res.json();
+        if (result.error) {
+          console.error('Telegram auth error:', result.error);
+          setLoading(false);
+          return;
+        }
+        if (result.session) {
+          await supabase.auth.setSession({
+            access_token: result.session.access_token,
+            refresh_token: result.session.refresh_token,
+          });
+        }
+      } catch (err) {
+        console.error('Telegram auth failed:', err);
+        setLoading(false);
+      }
+    };
+
+    doTelegramAuth();
+  }, [tgReady, isTelegram, initData]);
+
+  // Standard auth listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-            fetchBuildings(session.user.id);
-            fetchArmy(session.user.id);
-            fetchSpells(session.user.id);
-            fetchHeroSkills(session.user.id);
-          }, 0);
+          setTimeout(() => loadAllData(session.user.id), 0);
         } else {
           setProfile(null);
           setBuildings([]);
@@ -186,13 +229,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchBuildings(session.user.id);
-        fetchArmy(session.user.id);
-        fetchSpells(session.user.id);
-        fetchHeroSkills(session.user.id);
+        loadAllData(session.user.id);
       }
-      setLoading(false);
+      // Only set loading false if not telegram (telegram will set it after auth)
+      if (!isTelegram) {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -211,7 +253,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ 
-      user, session, profile, buildings, army, spells, heroSkills, loading, 
+      user, session, profile, buildings, army, spells, heroSkills, loading,
+      isTelegram, telegramUser: tgUser,
       signOut, refreshProfile, refreshBuildings, refreshArmy, refreshSpells, refreshHeroSkills,
       updateGold, updateMana, updateMapPosition, updateDay, updateHeroStats, setBuiltThisTurn
     }}>
