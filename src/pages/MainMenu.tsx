@@ -5,7 +5,7 @@ import { Globe, Users, LogOut } from 'lucide-react';
 
 const MainMenu = () => {
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isTelegram } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-dark flex flex-col items-center justify-center px-4">
