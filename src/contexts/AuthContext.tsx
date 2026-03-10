@@ -258,7 +258,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const { data: { session }, error } = await supabase.auth.getSession();
           if (error || !session) {
-            // Clear any stale/broken session
             await supabase.auth.signOut().catch(() => {});
             setSession(null);
             setUser(null);
@@ -266,7 +265,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else {
             setSession(session);
             setUser(session.user);
-            await loadAllData(session.user.id);
+            try {
+              await loadAllData(session.user.id);
+            } catch (e) {
+              console.error('Fallback loadAllData failed:', e);
+            }
           }
         } catch {
           setSession(null);
