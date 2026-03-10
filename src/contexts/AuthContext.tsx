@@ -97,7 +97,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .select('*')
       .eq('user_id', userId)
       .single();
-    setProfile(data as Profile | null);
+    
+    if (!data) {
+      // Profile was deleted — recreate it
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .insert({ user_id: userId })
+        .select('*')
+        .single();
+      setProfile(newProfile as Profile | null);
+    } else {
+      setProfile(data as Profile | null);
+    }
   };
 
   const fetchBuildings = async (userId: string) => {
