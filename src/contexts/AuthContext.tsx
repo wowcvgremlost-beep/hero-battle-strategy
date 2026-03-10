@@ -126,8 +126,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshSpells = async () => { if (user) await fetchSpells(user.id); };
   const refreshHeroSkills = async () => { if (user) await fetchHeroSkills(user.id); };
 
-  const loadAllData = (userId: string) => {
-    fetchProfile(userId);
+  const loadAllData = async (userId: string) => {
+    await fetchProfile(userId);
     fetchBuildings(userId);
     fetchArmy(userId);
     fetchSpells(userId);
